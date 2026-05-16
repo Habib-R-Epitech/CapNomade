@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { Calendar, MapPin, Pencil, CheckCircle2, Users } from 'lucide-react';
+import { Calendar, MapPin, CheckCircle2, Users } from 'lucide-react';
 import { requireSession } from '@/lib/auth/session';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { assertTripAccessBySlug } from '@/lib/auth/permissions';
@@ -152,13 +152,6 @@ export default async function TripDetailPage({ params }: { params: Promise<{ slu
               </Button>
             </CompleteTripDialog>
           )}
-          {canEdit && (
-            <Button asChild variant="outline" size="sm">
-              <Link href={`/voyages/${trip.slug}/parametres`}>
-                <Pencil className="size-4" /> Éditer
-              </Link>
-            </Button>
-          )}
           <TripActions tripId={trip.id} slug={trip.slug} status={trip.status} canEdit={canEdit} isOwner={context.isOwner} />
         </div>
       </header>
@@ -279,9 +272,9 @@ export default async function TripDetailPage({ params }: { params: Promise<{ slu
               {stops.length} étape{stops.length > 1 ? 's' : ''} ·{' '}
               {transports.length} segment{transports.length > 1 ? 's' : ''}.
             </p>
-            <Button asChild variant="outline" className="mt-3" size="sm">
-              <Link href={`/voyages/${trip.slug}/carte`}>Ouvrir la carte plein écran</Link>
-            </Button>
+            <p className="mt-3 text-xs text-muted-foreground">
+              Carte plein écran : bientôt disponible.
+            </p>
           </div>
         </TabsContent>
         <TabsContent value="equipe">

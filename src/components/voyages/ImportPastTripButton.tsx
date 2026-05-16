@@ -1,9 +1,14 @@
 'use client';
 
 import * as React from 'react';
+import dynamic from 'next/dynamic';
 import { Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { ImportPastTripDialog } from './ImportPastTripDialog';
+
+const ImportPastTripDialog = dynamic(
+  () => import('./ImportPastTripDialog').then((m) => m.ImportPastTripDialog),
+  { ssr: false },
+);
 
 export function ImportPastTripButton() {
   const [open, setOpen] = React.useState(false);
@@ -13,7 +18,7 @@ export function ImportPastTripButton() {
         <Upload className="size-4" />
         Importer un voyage passé
       </Button>
-      <ImportPastTripDialog open={open} onOpenChange={setOpen} />
+      {open && <ImportPastTripDialog open={open} onOpenChange={setOpen} />}
     </>
   );
 }

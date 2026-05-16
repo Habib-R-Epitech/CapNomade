@@ -16,8 +16,6 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { createTripAction } from '@/server/actions/trips';
 
 interface Props {
@@ -152,13 +150,29 @@ export function AddPastTripDialog({ open, onOpenChange }: Props) {
 
           <div className="space-y-2">
             <Label>Période</Label>
-            <Tabs value={dateMode} onValueChange={(v) => setDateMode(v as 'exact' | 'approx')}>
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="exact">Dates exactes</TabsTrigger>
-                <TabsTrigger value="approx">Approximatif</TabsTrigger>
-              </TabsList>
+            <div className="inline-flex rounded-md border bg-muted/30 p-1">
+              <button
+                type="button"
+                onClick={() => setDateMode('exact')}
+                className={`rounded px-3 py-1 text-sm transition ${
+                  dateMode === 'exact' ? 'bg-background shadow-sm' : 'text-muted-foreground'
+                }`}
+              >
+                Dates exactes
+              </button>
+              <button
+                type="button"
+                onClick={() => setDateMode('approx')}
+                className={`rounded px-3 py-1 text-sm transition ${
+                  dateMode === 'approx' ? 'bg-background shadow-sm' : 'text-muted-foreground'
+                }`}
+              >
+                Approximatif
+              </button>
+            </div>
 
-              <TabsContent value="exact" className="mt-3 space-y-3">
+            {dateMode === 'exact' ? (
+              <div className="space-y-3 pt-1">
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div className="space-y-1">
                     <Label htmlFor="past-start" className="text-xs font-normal">Date de départ</Label>
@@ -182,23 +196,22 @@ export function AddPastTripDialog({ open, onOpenChange }: Props) {
                 <p className="text-xs text-muted-foreground">
                   Vous pouvez laisser ces champs vides si vous ne vous en souvenez pas.
                 </p>
-              </TabsContent>
-
-              <TabsContent value="approx" className="mt-3 space-y-3">
+              </div>
+            ) : (
+              <div className="space-y-3 pt-1">
                 <div className="grid gap-3 sm:grid-cols-3">
                   <div className="space-y-1">
-                    <Label className="text-xs font-normal">Mois</Label>
-                    <Select
-                      value={String(approxMonth)}
-                      onValueChange={(v) => setApproxMonth(Number(v))}
+                    <Label htmlFor="past-month" className="text-xs font-normal">Mois</Label>
+                    <select
+                      id="past-month"
+                      value={approxMonth}
+                      onChange={(e) => setApproxMonth(Number(e.target.value))}
+                      className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                     >
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {MONTHS.map((m, i) => (
-                          <SelectItem key={i} value={String(i + 1)}>{m}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      {MONTHS.map((m, i) => (
+                        <option key={i} value={i + 1}>{m}</option>
+                      ))}
+                    </select>
                   </div>
                   <div className="space-y-1">
                     <Label htmlFor="past-year" className="text-xs font-normal">Année</Label>
@@ -226,8 +239,8 @@ export function AddPastTripDialog({ open, onOpenChange }: Props) {
                 <p className="text-xs text-muted-foreground">
                   Le voyage sera enregistré du 1er {MONTHS[approxMonth - 1]?.toLowerCase()} {approxYear} pendant {approxDuration} jour{approxDuration > 1 ? 's' : ''}.
                 </p>
-              </TabsContent>
-            </Tabs>
+              </div>
+            )}
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
