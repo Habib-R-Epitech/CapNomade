@@ -32,10 +32,17 @@ export type NotificationType =
 export type MapImportFormat = 'kml' | 'kmz' | 'gpx' | 'geojson' | 'csv' | 'xlsx';
 export type CarbonMethod = 'travel_impact_model' | 'distance_factor' | 'fallback' | 'manual';
 
-/** Helper: declare a table row with optional required keys for inserts. */
-type TableShape<Row, RequiredInsert extends keyof Row = never> = {
+/**
+ * Helper: declare a table row.
+ * Insert/Update kept as `Partial<Row>` — required-field enforcement is done
+ * upstream via Zod schemas in server actions. Keeping the intersection
+ * `Partial<Row> & Pick<Row, K>` collapses Supabase's overloaded `.insert()`
+ * argument inference to `never`, which breaks the type check at every insert
+ * call site.
+ */
+type TableShape<Row> = {
   Row: Row;
-  Insert: Partial<Row> & Pick<Row, RequiredInsert>;
+  Insert: Partial<Row>;
   Update: Partial<Row>;
   Relationships: [];
 };
@@ -365,31 +372,28 @@ interface AuditLogRow {
 export interface Database {
   public: {
     Tables: {
-      profiles: TableShape<ProfileRow, 'id' | 'email'>;
-      trips: TableShape<TripRow, 'owner_id' | 'title' | 'slug'>;
-      trip_members: TableShape<TripMemberRow, 'trip_id' | 'user_id' | 'role'>;
-      trip_invitations: TableShape<
-        TripInvitationRow,
-        'trip_id' | 'invited_email' | 'invited_by' | 'token'
-      >;
-      trip_stops: TableShape<TripStopRow, 'trip_id' | 'name'>;
-      trip_days: TableShape<TripDayRow, 'trip_id' | 'date'>;
-      activities: TableShape<ActivityRow, 'trip_id' | 'title'>;
-      accommodations: TableShape<AccommodationRow, 'trip_id' | 'name'>;
-      transport_segments: TableShape<TransportSegmentRow, 'trip_id' | 'mode'>;
-      attachments: TableShape<AttachmentRow, 'trip_id' | 'bucket' | 'path'>;
-      expenses: TableShape<ExpenseRow, 'trip_id' | 'type' | 'label' | 'amount_cents' | 'currency'>;
-      expense_allocations: TableShape<ExpenseAllocationRow, 'expense_id' | 'user_id' | 'share_cents'>;
-      expense_payments: TableShape<ExpensePaymentRow, 'expense_id' | 'user_id' | 'paid_cents'>;
-      media_links: TableShape<MediaLinkRow, 'trip_id' | 'kind' | 'url'>;
-      map_imports: TableShape<MapImportRow, 'uploaded_by' | 'source_format'>;
-      map_features: TableShape<MapFeatureRow, 'feature_type' | 'geometry'>;
-      trip_reviews: TableShape<TripReviewRow, 'trip_id' | 'author_id' | 'overall'>;
-      wish_items: TableShape<WishItemRow, 'user_id' | 'title'>;
-      notifications: TableShape<NotificationRow, 'user_id' | 'type' | 'title'>;
-      destination_insights: TableShape<DestinationInsightsRow, 'destination_key' | 'payload'>;
-      trip_stats_snapshots: TableShape<TripStatsSnapshotRow, 'trip_id' | 'payload'>;
-      audit_logs: TableShape<AuditLogRow, 'action'>;
+      profiles: TableShape<ProfileRow>;
+      trips: TableShape<TripRow>;
+      trip_members: TableShape<TripMemberRow>;
+      trip_invitations: TableShape<TripInvitationRow>;
+      trip_stops: TableShape<TripStopRow>;
+      trip_days: TableShape<TripDayRow>;
+      activities: TableShape<ActivityRow>;
+      accommodations: TableShape<AccommodationRow>;
+      transport_segments: TableShape<TransportSegmentRow>;
+      attachments: TableShape<AttachmentRow>;
+      expenses: TableShape<ExpenseRow>;
+      expense_allocations: TableShape<ExpenseAllocationRow>;
+      expense_payments: TableShape<ExpensePaymentRow>;
+      media_links: TableShape<MediaLinkRow>;
+      map_imports: TableShape<MapImportRow>;
+      map_features: TableShape<MapFeatureRow>;
+      trip_reviews: TableShape<TripReviewRow>;
+      wish_items: TableShape<WishItemRow>;
+      notifications: TableShape<NotificationRow>;
+      destination_insights: TableShape<DestinationInsightsRow>;
+      trip_stats_snapshots: TableShape<TripStatsSnapshotRow>;
+      audit_logs: TableShape<AuditLogRow>;
     };
     Views: Record<string, never>;
     Functions: {

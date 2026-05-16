@@ -1,7 +1,7 @@
 # CapNomade — État d'avancement
 
 > Ce fichier est mis à jour à chaque push.
-> Dernière mise à jour : **2026-05-16** — fix typage `session.ts` (dernier site Supabase non casté).
+> Dernière mise à jour : **2026-05-16** — simplification `TableShape` pour débloquer `.insert()`.
 
 ---
 
@@ -35,6 +35,13 @@
 
 ## Journal des fixes / patchs
 
+- **2026-05-16 · Simplifier TableShape (commit n°9)** —
+  `.insert({...})` collapsait à `never[]` parce que mon `TableShape<R, K>` avec
+  `Insert: Partial<R> & Pick<R, K>` ne satisfaisait pas les contraintes
+  génériques internes de supabase-js (l'intersection cassait l'inférence des
+  overloads). Simplification : `Insert: Partial<R>` (plus de générique K).
+  La validation des champs requis se fait via Zod dans les server actions
+  (défense en profondeur : Zod + NOT NULL en BDD + RLS).
 - **2026-05-16 · session.ts cast (commit n°8)** — `profile.email` collapsait à
   `never` dans `getSession`. Le refactor du Database type au commit n°5 n'a
   apparemment pas résolu tous les cas d'inférence — peut-être le helper
