@@ -1,7 +1,7 @@
 # CapNomade — État d'avancement
 
 > Ce fichier est mis à jour à chaque push.
-> Dernière mise à jour : **2026-05-16** — 🎉 build Next.js OK ; création `public/` + vercel.json.
+> Dernière mise à jour : **2026-05-16** — mockup HTML interactif (toutes les pages navigables).
 
 ---
 
@@ -35,6 +35,17 @@
 
 ## Journal des fixes / patchs
 
+- **2026-05-16 · mockup HTML navigable (commit n°17)** — `public/mockup.html` :
+  un seul fichier HTML autonome avec routeur hash-based, Tailwind via CDN,
+  fonts Inter+Fraunces, logo SVG fidèle à la maquette. **13 routes
+  navigables** : landing complète (hero + features + comparaison Excel + CTA + footer),
+  connexion, inscription, fonctionnalités, pourquoi-quitter-excel,
+  confidentialité, dashboard (welcome + map mondiale + 11 stats + 4 widgets + recent),
+  mes voyages, voyages planifiés, **détail voyage Bali** (8 onglets cliquables —
+  planning timeline, dépenses, transports, logements, médias, carte, équipe,
+  notation post-voyage avec sliders), détail voyage Japon, envies, invitations,
+  paramètres, nouveau voyage, 404. Accessible localement via `open public/mockup.html`
+  ou en ligne via `https://<domaine>/mockup.html` une fois déployé.
 - **2026-05-16 · `public/` + vercel.json (commit n°16)** — **build Next.js 100% OK**
   (compile, lint, types, page data collection, 16/16 static pages, traces) mais
   Vercel échouait en post-build avec "No Output Directory named 'public' found".

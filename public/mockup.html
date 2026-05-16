@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CapNomade — Mockup interactif</title>
+<meta name="robots" content="noindex" />
+<script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap" rel="stylesheet" />
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'], serif: ['Fraunces', 'Georgia', 'serif'] },
+        colors: {
+          ocean: { 50:'#f0f7fb',100:'#dbecf3',200:'#bcdbe9',300:'#8fc3d8',400:'#5aa3c2',500:'#3a87aa',600:'#2f6c8e',700:'#295976',800:'#264a61',900:'#1d3a4f',950:'#0e2236' },
+          sand:  { 50:'#fbf9f4',100:'#f5efe1',200:'#ebdfc4',300:'#dec79c',400:'#cfaa72',500:'#c39256',600:'#b37c47',700:'#94633c',800:'#785036',900:'#62432f' },
+          lagoon:{ 50:'#effaf6',100:'#d8f3e6',200:'#b3e6d0',300:'#82d2b4',400:'#4eb893',500:'#2c9d7a',600:'#1e7e62',700:'#196550',800:'#175141',900:'#134337' },
+          coral: { 50:'#fff3f0',100:'#ffe2da',200:'#ffc6b5',300:'#ff9c81',400:'#fb6d4a',500:'#f04923',600:'#dd3217',700:'#b72414',800:'#931f17',900:'#791e18' },
+        }
+      }
+    }
+  }
+</script>
+<style>
+  body { font-family: 'Inter', system-ui, sans-serif; background: #fbf9f4; color: #1d3a4f; }
+  .font-serif { font-family: 'Fraunces', Georgia, serif; }
+  .gradient-hero {
+    background:
+      radial-gradient(60% 70% at 15% 10%, rgba(240,73,35,0.10), transparent 60%),
+      radial-gradient(45% 60% at 95% 100%, rgba(41,89,118,0.18), transparent 65%),
+      linear-gradient(180deg, #fdfaf3, #f5efe1);
+  }
+  .text-balance { text-wrap: balance; }
+  [data-route] { display: none; }
+  [data-route].active { display: block; }
+  .tab[data-active="true"] { background: #295976; color: #fbf9f4; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+  .icon-tile { box-shadow: 0 1px 2px 0 rgba(0,0,0,0.04), 0 1px 3px 0 rgba(0,0,0,0.05); }
+  .card { box-shadow: 0 1px 2px 0 rgba(0,0,0,0.04), 0 1px 3px 0 rgba(0,0,0,0.05); transition: box-shadow 0.2s; }
+  .card:hover { box-shadow: 0 10px 30px -10px rgba(15,30,45,0.18); }
+  .shadow-soft { box-shadow: 0 1px 2px 0 rgba(0,0,0,0.04), 0 1px 3px 0 rgba(0,0,0,0.05); }
+  .shadow-elevated { box-shadow: 0 10px 30px -10px rgba(15,30,45,0.18); }
+  .dot { width: 10px; height: 10px; border-radius: 9999px; background: #f04923; border: 2px solid white; box-shadow: 0 1px 4px rgba(0,0,0,0.2); position: absolute; transform: translate(-50%, -50%); cursor: pointer; }
+  .dot::before { content: ''; position: absolute; inset: -10px; border-radius: 9999px; background: rgba(240,73,35,0.18); animation: ping 2s ease-out infinite; }
+  @keyframes ping { 0% { transform: scale(0.6); opacity: 0.8 } 100% { transform: scale(1.6); opacity: 0 } }
+</style>
+</head>
+<body class="min-h-screen">
+
+<!-- ============================ LOGO MARK SVG (reused) ============================ -->
+<template id="tpl-logo">
+  <div class="flex items-center gap-2">
+    <svg width="36" height="36" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <circle cx="32" cy="32" r="29" fill="#fffdf7" stroke="#1d3a4f" stroke-width="1.5"/>
+      <ellipse cx="32" cy="32" rx="29" ry="11" fill="none" stroke="#2c9d7a" stroke-width="0.9" opacity="0.55"/>
+      <ellipse cx="32" cy="32" rx="29" ry="22" fill="none" stroke="#2c9d7a" stroke-width="0.6" opacity="0.35"/>
+      <path d="M16 22 Q 22 18 27 22 T 32 26 Q 28 32 22 30 Q 18 27 16 22 Z" fill="#4eb893" opacity="0.55"/>
+      <path d="M38 18 Q 46 16 50 22 Q 48 28 42 28 Q 36 26 38 18 Z" fill="#4eb893" opacity="0.55"/>
+      <path d="M40 36 Q 46 34 48 40 Q 46 46 42 44 Q 38 42 40 36 Z" fill="#4eb893" opacity="0.55"/>
+      <path d="M10 50 L 18 38 L 23 44 L 30 30 L 40 42 L 48 36 L 54 50 Z" fill="#1d3a4f"/>
+      <path d="M28.8 32 L 30 30 L 31.2 32 L 30 32.8 Z" fill="#fbf9f4"/>
+      <path d="M38.8 44 L 40 42 L 41.2 44 L 40 44.8 Z" fill="#fbf9f4"/>
+      <path d="M14 50 L 16 44 L 18 50 Z M 14.8 47 L 16 44.5 L 17.2 47 Z" fill="#1d3a4f"/>
+      <path d="M19 50 L 20.8 45 L 22.6 50 Z M 19.6 47.5 L 20.8 45.4 L 22 47.5 Z" fill="#1d3a4f"/>
+      <path d="M 11 24 Q 32 12 53 24" fill="none" stroke="#1d3a4f" stroke-width="1.2" stroke-dasharray="1.6 2" stroke-linecap="round"/>
+      <circle cx="11" cy="24" r="1.6" fill="#f04923"/>
+      <g transform="translate(50 22) rotate(40)"><path d="M0 0 L 6 1.6 L 6 0 L 8.4 0.8 L 6 1.6 L 8.4 2.4 L 6 3.2 L 6 1.6 L 0 3.2 L 1.6 1.6 Z" fill="#1d3a4f"/></g>
+    </svg>
+    <span class="font-serif font-semibold text-lg leading-none">
+      <span class="text-[#1d3a4f]">Cap</span><span class="text-[#1e7e62]">Nomade</span>
+    </span>
+  </div>
+</template>
+
+<!-- ============================ DEV BANNER ============================ -->
+<div class="bg-coral-100 border-b border-coral-200 text-coral-900 text-xs font-medium text-center py-1.5">
+  Mockup interactif · navigation via les liens · pas branché à Supabase ·
+  <button onclick="resetMockup()" class="underline ml-2">retour accueil</button>
+</div>
+
+<!-- ============================ HEADER MARKETING ============================ -->
+<header data-shell="public" class="sticky top-0 z-30 border-b bg-white/85 backdrop-blur">
+  <div class="max-w-7xl mx-auto px-4 md:px-8 flex h-16 items-center justify-between gap-8">
+    <a href="#/" class="flex items-center" data-logo></a>
+    <nav class="hidden md:flex items-center gap-6 text-sm font-medium">
+      <a href="#/fonctionnalites" class="text-ocean-700/70 hover:text-ocean-900">Fonctionnalités</a>
+      <a href="#/pourquoi-quitter-excel" class="text-ocean-700/70 hover:text-ocean-900">Pourquoi quitter Excel</a>
+      <a href="#/confidentialite" class="text-ocean-700/70 hover:text-ocean-900">Confidentialité</a>
+    </nav>
+    <div class="flex items-center gap-2">
+      <a href="#/connexion" class="hidden sm:inline-flex px-3 py-1.5 rounded-md text-sm font-medium hover:bg-ocean-50">Se connecter</a>
+      <a href="#/inscription" class="px-3 py-1.5 rounded-md bg-ocean-700 text-white text-sm font-medium hover:bg-ocean-800 shadow-soft">Créer un compte</a>
+    </div>
+  </div>
+</header>
+
+<!-- ============================ LAYOUT AUTH (sidebar + topbar) ============================ -->
+<div data-shell="dashboard" class="hidden min-h-screen">
+  <div class="flex">
+    <!-- Sidebar -->
+    <aside class="hidden lg:flex flex-col w-64 shrink-0 border-r bg-white/60 min-h-screen">
+      <div class="px-6 py-5 border-b" data-logo></div>
+      <nav class="flex-1 p-3 space-y-0.5">
+        <a href="#/dashboard" data-nav="dashboard" class="nav-item flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-ocean-700/70 hover:bg-ocean-50">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          <span class="flex-1">Accueil</span>
+        </a>
+        <a href="#/voyages" data-nav="voyages" class="nav-item flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-ocean-700/70 hover:bg-ocean-50">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 10h4a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6a2 2 0 0 1 2-2h4"/><path d="M12 14l8-8"/><path d="M20 6V2h-4"/><path d="M12 14v8"/></svg>
+          <span class="flex-1">Mes voyages</span>
+        </a>
+        <a href="#/voyages/planifies" data-nav="planifies" class="nav-item flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-ocean-700/70 hover:bg-ocean-50">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          <span class="flex-1">Planifiés</span>
+        </a>
+        <a href="#/envies" data-nav="envies" class="nav-item flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-ocean-700/70 hover:bg-ocean-50">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z"/></svg>
+          <span class="flex-1">Mes envies</span>
+        </a>
+        <a href="#/invitations" data-nav="invitations" class="nav-item flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-ocean-700/70 hover:bg-ocean-50">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg>
+          <span class="flex-1">Invitations</span>
+          <span class="rounded-full bg-coral-500 px-1.5 py-0.5 text-[0.65rem] font-semibold text-white">2</span>
+        </a>
+        <a href="#/parametres" data-nav="parametres" class="nav-item flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-ocean-700/70 hover:bg-ocean-50">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+          <span class="flex-1">Paramètres</span>
+        </a>
+      </nav>
+      <div class="p-4 border-t text-xs text-ocean-700/60">Privé par défaut · vos données vous appartiennent.</div>
+    </aside>
+
+    <!-- Main column -->
+    <div class="flex-1 flex flex-col min-w-0">
+      <header class="sticky top-0 z-20 flex h-16 items-center gap-3 border-b bg-white/85 backdrop-blur px-4 md:px-8">
+        <div class="flex-1"></div>
+        <a href="#/voyages/nouveau" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-ocean-700 text-white text-sm font-medium hover:bg-ocean-800 shadow-soft">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+          Nouveau voyage
+        </a>
+        <button class="size-10 rounded-md flex items-center justify-center text-ocean-700/70 hover:bg-ocean-50 relative" aria-label="Notifications">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+          <span class="absolute right-2 top-2 size-2 rounded-full bg-coral-500"></span>
+        </button>
+        <div class="flex items-center gap-2">
+          <div class="size-9 rounded-full bg-ocean-700 text-white flex items-center justify-center text-xs font-semibold">CD</div>
+        </div>
+      </header>
+      <div id="dashboard-main" class="flex-1 px-4 py-8 md:px-8 md:py-10">
+        <!-- routes injected here -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================ ROUTES ============================ -->
+<main id="route-host">
+
+<!-- ─────────────────────── ROUTE: LANDING ─────────────────────── -->
+<section data-route="#/" data-shell="public">
+  <!-- Hero -->
+  <section class="gradient-hero">
+    <div class="max-w-7xl mx-auto px-4 md:px-8 py-24 lg:py-32 grid lg:grid-cols-[1.05fr_1fr] gap-16 items-center">
+      <div class="space-y-7 text-balance">
+        <span class="inline-flex items-center gap-1 rounded-full bg-sand-200 px-3 py-1 text-xs font-medium text-ocean-900">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.582a.5.5 0 0 1 0 .962L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></svg>
+          Conçu pour les voyageurs qui détestent le tableur
+        </span>
+        <h1 class="font-serif text-5xl md:text-6xl font-semibold leading-[1.05] tracking-tight">
+          Vos voyages, planifiés à plusieurs, sans le chaos d'Excel.
+        </h1>
+        <p class="max-w-2xl text-lg text-ocean-700/70">
+          CapNomade centralise votre planning jour par jour, vos dépenses détaillées entre voyageurs,
+          vos trajets, vos cartes, vos documents et vos notes post-voyage. Un seul carnet, partagé
+          avec les bonnes personnes — privé par défaut.
+        </p>
+        <div class="flex flex-wrap items-center gap-3">
+          <a href="#/inscription" class="inline-flex items-center justify-center gap-2 px-7 h-12 rounded-lg bg-ocean-700 text-white text-base font-medium hover:bg-ocean-800 shadow-soft">Créer mon compte gratuitement</a>
+          <a href="#/connexion" class="inline-flex items-center justify-center gap-2 px-7 h-12 rounded-lg border border-ocean-200 bg-white text-ocean-900 text-base font-medium hover:bg-ocean-50">Se connecter</a>
+        </div>
+        <ul class="flex flex-wrap gap-x-6 gap-y-2 pt-2 text-sm text-ocean-700/60">
+          <li class="flex items-center gap-2"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/></svg> Budget par voyageur</li>
+          <li class="flex items-center gap-2"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/></svg> Carte interactive</li>
+          <li class="flex items-center gap-2"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/></svg> Partage par invitation</li>
+        </ul>
+      </div>
+
+      <!-- Hero preview card -->
+      <div class="relative">
+        <div class="absolute -inset-6 -z-10 rounded-3xl bg-gradient-to-br from-ocean-200/40 via-coral-200/30 to-lagoon-200/40 blur-2xl"></div>
+        <div class="rounded-3xl border bg-white/95 p-6 shadow-elevated backdrop-blur">
+          <div class="flex items-center justify-between text-xs uppercase tracking-widest text-ocean-700/60">
+            <span>Voyage en cours</span>
+            <span class="rounded-full bg-lagoon-500/15 px-2 py-0.5 font-medium text-lagoon-700">Planning</span>
+          </div>
+          <h3 class="mt-4 font-serif text-2xl font-semibold">Japon — Cerisiers 2026</h3>
+          <p class="mt-1 text-sm text-ocean-700/60">2 — 22 avril · 4 voyageurs</p>
+          <dl class="mt-6 grid grid-cols-3 gap-3">
+            <div class="rounded-xl border bg-sand-50 px-3 py-2.5"><div class="text-[0.7rem] uppercase tracking-wider text-ocean-700/60">Étapes</div><div class="font-serif text-lg font-semibold">4</div></div>
+            <div class="rounded-xl border bg-sand-50 px-3 py-2.5"><div class="text-[0.7rem] uppercase tracking-wider text-ocean-700/60">Budget</div><div class="font-serif text-lg font-semibold">6 000 €</div></div>
+            <div class="rounded-xl border bg-sand-50 px-3 py-2.5"><div class="text-[0.7rem] uppercase tracking-wider text-ocean-700/60">CO₂</div><div class="font-serif text-lg font-semibold">1.6 t</div></div>
+          </dl>
+          <div class="mt-6 space-y-2.5">
+            <div class="flex items-center gap-3 rounded-lg border bg-sand-50 px-3 py-2"><div class="min-w-0 flex-1"><p class="truncate text-sm font-medium">Vol Paris → Tokyo</p><p class="truncate text-xs text-ocean-700/60">Air France · 11h45 · 9 710 km</p></div><span class="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium bg-lagoon-500/15 text-lagoon-700">Réservé</span></div>
+            <div class="flex items-center gap-3 rounded-lg border bg-sand-50 px-3 py-2"><div class="min-w-0 flex-1"><p class="truncate text-sm font-medium">Tokyo · Quartier de Shibuya</p><p class="truncate text-xs text-ocean-700/60">J1 · découverte du quartier, Shibuya Sky</p></div><span class="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium bg-sand-200 text-ocean-700/70">J1</span></div>
+            <div class="flex items-center gap-3 rounded-lg border bg-sand-50 px-3 py-2"><div class="min-w-0 flex-1"><p class="truncate text-sm font-medium">Shinkansen Tokyo → Kyoto</p><p class="truncate text-xs text-ocean-700/60">2h13 · Nozomi 215</p></div><span class="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium bg-sand-200 text-ocean-700/70">J8</span></div>
+            <div class="flex items-center gap-3 rounded-lg border bg-sand-50 px-3 py-2"><div class="min-w-0 flex-1"><p class="truncate text-sm font-medium">Dîner Hashida Sushi</p><p class="truncate text-xs text-ocean-700/60">Tokyo · 180 € pour 4</p></div><span class="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium bg-coral-100 text-coral-700">Repas</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="max-w-7xl mx-auto px-4 md:px-8 py-24">
+    <div class="max-w-2xl mx-auto text-center">
+      <p class="text-sm font-semibold uppercase tracking-widest text-ocean-700">Fonctionnalités</p>
+      <h2 class="mt-3 font-serif text-3xl md:text-4xl font-semibold leading-tight">Tout ce que vous mettiez dans Excel, en mieux pensé.</h2>
+      <p class="mt-3 text-ocean-700/70">Conçu pour les voyageurs exigeants : assez puissant pour un tour du monde, assez simple pour un week-end.</p>
+    </div>
+    <div class="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3" id="features-grid"></div>
+  </section>
+
+  <!-- Excel vs CapNomade -->
+  <section class="max-w-7xl mx-auto px-4 md:px-8 py-16 bg-sand-50/50">
+    <div class="max-w-2xl mx-auto text-center">
+      <p class="text-sm font-semibold uppercase tracking-widest text-coral-600">Comparaison</p>
+      <h2 class="mt-3 font-serif text-3xl md:text-4xl font-semibold">Pourquoi quitter Excel ?</h2>
+    </div>
+    <div class="mt-10 max-w-4xl mx-auto rounded-2xl border bg-white shadow-soft overflow-hidden">
+      <table class="w-full text-left text-sm">
+        <thead class="bg-sand-100 text-xs uppercase tracking-wider text-ocean-700/60">
+          <tr><th class="px-5 py-3">Sujet</th><th class="px-5 py-3">❌ Avec Excel</th><th class="px-5 py-3">✓ Avec CapNomade</th></tr>
+        </thead>
+        <tbody class="divide-y">
+          <tr><th class="px-5 py-4 font-medium align-top">Planning jour par jour</th><td class="px-5 py-4 text-ocean-700/60 align-top">À reconstruire à chaque voyage</td><td class="px-5 py-4 align-top">Timeline native, drag & drop</td></tr>
+          <tr><th class="px-5 py-4 font-medium align-top">Dépenses entre voyageurs</th><td class="px-5 py-4 text-ocean-700/60 align-top">Formules fragiles, devises oubliées</td><td class="px-5 py-4 align-top">Type, devise, répartition %, paiements partiels</td></tr>
+          <tr><th class="px-5 py-4 font-medium align-top">Cartographie</th><td class="px-5 py-4 text-ocean-700/60 align-top">Aucune</td><td class="px-5 py-4 align-top">Carte MapLibre, imports KML/GPX</td></tr>
+          <tr><th class="px-5 py-4 font-medium align-top">Empreinte carbone</th><td class="px-5 py-4 text-ocean-700/60 align-top">Pas géré</td><td class="px-5 py-4 align-top">Calculée pour chaque vol/trajet</td></tr>
+          <tr><th class="px-5 py-4 font-medium align-top">Collaboration</th><td class="px-5 py-4 text-ocean-700/60 align-top">Partage du fichier, écrasement</td><td class="px-5 py-4 align-top">Invitations, rôles, audit log</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="max-w-7xl mx-auto px-4 md:px-8 py-24">
+    <div class="relative overflow-hidden rounded-3xl border bg-white px-8 py-16 text-center shadow-elevated md:px-16">
+      <div class="absolute inset-0 -z-10 bg-gradient-to-br from-ocean-100 via-transparent to-coral-100"></div>
+      <p class="text-sm font-semibold uppercase tracking-widest text-coral-600">Prêt à embarquer ?</p>
+      <h2 class="mx-auto mt-3 max-w-2xl font-serif text-3xl md:text-4xl font-semibold leading-tight">Quel sera le prochain voyage ?</h2>
+      <p class="mx-auto mt-3 max-w-xl text-ocean-700/70">Connectez-vous, importez votre dernier Excel, reprenez la main sur vos voyages.</p>
+      <div class="mt-7 flex justify-center gap-3 flex-wrap">
+        <a href="#/inscription" class="inline-flex items-center px-7 h-12 rounded-lg bg-ocean-700 text-white text-base font-medium hover:bg-ocean-800 shadow-soft">Créer mon compte</a>
+        <a href="#/connexion" class="inline-flex items-center px-7 h-12 rounded-lg border border-ocean-200 bg-white text-ocean-900 text-base font-medium hover:bg-ocean-50">Continuer avec Google</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="border-t bg-sand-50/60">
+    <div class="max-w-7xl mx-auto px-4 md:px-8 py-12 grid gap-8 md:grid-cols-4">
+      <div class="space-y-3">
+        <div data-logo></div>
+        <p class="max-w-xs text-sm text-ocean-700/60">Le carnet de voyage moderne pour planifier, suivre et raconter vos voyages — à plusieurs.</p>
+      </div>
+      <div><p class="mb-3 text-xs font-semibold uppercase tracking-wider text-ocean-700/60">Produit</p><ul class="space-y-2 text-sm"><li><a href="#/fonctionnalites" class="hover:underline">Fonctionnalités</a></li><li><a href="#/pourquoi-quitter-excel" class="hover:underline">Pourquoi quitter Excel</a></li><li><a href="#/dashboard" class="hover:underline">Mon dashboard</a></li></ul></div>
+      <div><p class="mb-3 text-xs font-semibold uppercase tracking-wider text-ocean-700/60">Ressources</p><ul class="space-y-2 text-sm"><li><a href="#/confidentialite" class="hover:underline">Confidentialité</a></li><li><a href="#" class="hover:underline">Conditions</a></li></ul></div>
+      <div><p class="mb-3 text-xs font-semibold uppercase tracking-wider text-ocean-700/60">Société</p><ul class="space-y-2 text-sm"><li><a href="#" class="hover:underline">À propos</a></li><li><a href="#" class="hover:underline">Mentions légales</a></li></ul></div>
+    </div>
+    <div class="border-t"><div class="max-w-7xl mx-auto px-4 md:px-8 py-4 text-xs text-ocean-700/50 flex flex-col md:flex-row justify-between"><p>© 2026 CapNomade. Tous droits réservés.</p><p>Conçu pour voyager mieux, à plusieurs.</p></div></div>
+  </footer>
+</section>
+
+<!-- ─────────────────────── ROUTE: CONNEXION ─────────────────────── -->
+<section data-route="#/connexion" data-shell="public">
+  <div class="max-w-md mx-auto px-4 py-16">
+    <header class="mb-8 space-y-2 text-center">
+      <p class="text-sm font-medium uppercase tracking-widest text-ocean-700">Bon retour</p>
+      <h1 class="font-serif text-3xl font-semibold">Se connecter</h1>
+      <p class="text-sm text-ocean-700/60">Continuez vos voyages là où vous les avez laissés.</p>
+    </header>
+    <div class="space-y-5">
+      <button class="w-full h-12 rounded-lg border border-ocean-200 bg-white font-medium hover:bg-ocean-50 inline-flex items-center justify-center gap-2">
+        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path fill="#EA4335" d="M12 10.2v3.9h5.5c-.24 1.4-1.7 4.1-5.5 4.1-3.3 0-6-2.7-6-6s2.7-6 6-6c1.9 0 3.1.8 3.8 1.5l2.6-2.5C16.7 3.8 14.6 3 12 3 6.9 3 2.8 7.1 2.8 12.2S6.9 21.4 12 21.4c6.9 0 9.3-4.8 9.3-7.3 0-.5-.1-.9-.1-1.3H12z"/><path fill="#FBBC05" d="M2.8 12.2c0-.9.2-1.7.5-2.5l3.1 2.4c-.1.4-.2.7-.2 1.1 0 .4.1.7.2 1.1L3.3 16.7c-.3-.7-.5-1.5-.5-2.5z"/><path fill="#34A853" d="M12 21.4c2.6 0 4.7-.9 6.3-2.5l-3-2.4c-.8.6-1.9 1-3.3 1-2.5 0-4.6-1.7-5.4-3.9L3.5 16c1.4 3.1 4.6 5.4 8.5 5.4z"/><path fill="#4285F4" d="M21.3 12.2c0-.7-.1-1.2-.2-1.7H12v3.4h5.2c-.2 1.1-.9 2.1-1.9 2.8l3 2.4c1.7-1.6 2.7-4 2.7-6.9z"/></svg>
+        Continuer avec Google
+      </button>
+      <div class="relative"><div class="absolute inset-0 flex items-center"><div class="w-full border-t"></div></div><div class="relative flex justify-center text-xs uppercase tracking-widest"><span class="bg-sand-50 px-2 text-ocean-700/60">ou par email</span></div></div>
+      <form class="space-y-4" onsubmit="event.preventDefault(); location.hash='#/dashboard'">
+        <div class="space-y-1.5"><label class="text-sm font-medium">Email</label><input type="email" required class="w-full h-10 rounded-md border border-ocean-200 bg-white px-3 text-sm focus:ring-2 focus:ring-ocean-400 focus:outline-none" value="camille@exemple.fr" /></div>
+        <div class="space-y-1.5"><div class="flex items-center justify-between"><label class="text-sm font-medium">Mot de passe</label><a href="#/mot-de-passe-oublie" class="text-xs text-ocean-700/60 hover:underline">Oublié ?</a></div><input type="password" required minlength="8" class="w-full h-10 rounded-md border border-ocean-200 bg-white px-3 text-sm" value="passwordfake" /></div>
+        <button class="w-full h-12 rounded-lg bg-ocean-700 text-white font-medium hover:bg-ocean-800 shadow-soft">Se connecter</button>
+      </form>
+    </div>
+    <p class="mt-6 text-center text-sm text-ocean-700/60">Pas encore de compte ? <a href="#/inscription" class="font-medium text-ocean-700 hover:underline">Créer un compte</a></p>
+  </div>
+</section>
+
+<!-- ─────────────────────── ROUTE: INSCRIPTION ─────────────────────── -->
+<section data-route="#/inscription" data-shell="public">
+  <div class="max-w-md mx-auto px-4 py-16">
+    <header class="mb-8 space-y-2 text-center">
+      <p class="text-sm font-medium uppercase tracking-widest text-ocean-700">Bienvenue</p>
+      <h1 class="font-serif text-3xl font-semibold">Créer un compte</h1>
+      <p class="text-sm text-ocean-700/60">Gratuit. Aucune carte bancaire requise. Privé par défaut.</p>
+    </header>
+    <div class="space-y-5">
+      <button class="w-full h-12 rounded-lg border border-ocean-200 bg-white font-medium hover:bg-ocean-50 inline-flex items-center justify-center gap-2">
+        <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#EA4335" d="M12 10.2v3.9h5.5c-.24 1.4-1.7 4.1-5.5 4.1-3.3 0-6-2.7-6-6s2.7-6 6-6c1.9 0 3.1.8 3.8 1.5l2.6-2.5C16.7 3.8 14.6 3 12 3 6.9 3 2.8 7.1 2.8 12.2S6.9 21.4 12 21.4c6.9 0 9.3-4.8 9.3-7.3 0-.5-.1-.9-.1-1.3H12z"/><path fill="#FBBC05" d="M2.8 12.2c0-.9.2-1.7.5-2.5l3.1 2.4c-.1.4-.2.7-.2 1.1 0 .4.1.7.2 1.1L3.3 16.7c-.3-.7-.5-1.5-.5-2.5z"/><path fill="#34A853" d="M12 21.4c2.6 0 4.7-.9 6.3-2.5l-3-2.4c-.8.6-1.9 1-3.3 1-2.5 0-4.6-1.7-5.4-3.9L3.5 16c1.4 3.1 4.6 5.4 8.5 5.4z"/><path fill="#4285F4" d="M21.3 12.2c0-.7-.1-1.2-.2-1.7H12v3.4h5.2c-.2 1.1-.9 2.1-1.9 2.8l3 2.4c1.7-1.6 2.7-4 2.7-6.9z"/></svg>
+        Continuer avec Google
+      </button>
+      <div class="relative"><div class="absolute inset-0 flex items-center"><div class="w-full border-t"></div></div><div class="relative flex justify-center text-xs uppercase tracking-widest"><span class="bg-sand-50 px-2 text-ocean-700/60">ou par email</span></div></div>
+      <form class="space-y-4" onsubmit="event.preventDefault(); location.hash='#/dashboard'">
+        <div class="space-y-1.5"><label class="text-sm font-medium">Prénom et nom</label><input class="w-full h-10 rounded-md border border-ocean-200 bg-white px-3 text-sm" required minlength="2" value="Camille Demo" /></div>
+        <div class="space-y-1.5"><label class="text-sm font-medium">Email</label><input type="email" class="w-full h-10 rounded-md border border-ocean-200 bg-white px-3 text-sm" required value="" placeholder="vous@exemple.fr" /></div>
+        <div class="space-y-1.5"><label class="text-sm font-medium">Mot de passe</label><input type="password" class="w-full h-10 rounded-md border border-ocean-200 bg-white px-3 text-sm" required minlength="8" /><p class="text-xs text-ocean-700/60">8 caractères minimum.</p></div>
+        <button class="w-full h-12 rounded-lg bg-ocean-700 text-white font-medium hover:bg-ocean-800 shadow-soft">Créer mon compte</button>
+      </form>
+    </div>
+    <p class="mt-6 text-center text-sm text-ocean-700/60">Déjà un compte ? <a href="#/connexion" class="font-medium text-ocean-700 hover:underline">Se connecter</a></p>
+  </div>
+</section>
+
+<!-- ─────────────────────── ROUTE: DASHBOARD ─────────────────────── -->
+<section data-route="#/dashboard" data-shell="dashboard">
+  <div class="max-w-7xl mx-auto space-y-8">
+    <header class="space-y-1">
+      <p class="text-sm font-medium text-ocean-700/60">Bonjour Camille</p>
+      <h1 class="font-serif text-4xl md:text-5xl font-semibold leading-tight">Quel sera le prochain voyage ?</h1>
+    </header>
+
+    <!-- Upcoming card -->
+    <div class="rounded-xl border border-coral-200/40 bg-gradient-to-br from-coral-50 via-white to-ocean-50 card p-6">
+      <div class="flex flex-wrap items-center gap-3">
+        <span class="inline-flex rounded-full bg-coral-100 px-2.5 py-0.5 text-xs font-medium text-coral-700">Prochain voyage</span>
+        <span class="text-xs text-ocean-700/60">Dans 142 jours</span>
+      </div>
+      <h2 class="mt-3 font-serif text-3xl font-semibold leading-tight">Japon — Tokyo, Kyoto, Kanazawa</h2>
+      <div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ocean-700/60">
+        <span class="inline-flex items-center gap-1.5"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> 2 avr – 22 avr 2026</span>
+        <span class="inline-flex items-center gap-1.5"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/></svg> JP</span>
+      </div>
+      <div class="mt-5 flex flex-wrap gap-3">
+        <a href="#/voyages/japon" class="inline-flex items-center px-5 h-10 rounded-md bg-ocean-700 text-white text-sm font-medium hover:bg-ocean-800 shadow-soft">Ouvrir le voyage</a>
+        <a href="#/voyages/japon" class="inline-flex items-center px-5 h-10 rounded-md border border-ocean-200 bg-white text-sm font-medium hover:bg-ocean-50">Voir le planning</a>
+      </div>
+    </div>
+
+    <!-- World map -->
+    <section class="space-y-3">
+      <div class="flex items-center justify-between">
+        <h2 class="font-serif text-xl font-semibold">Vos voyages sur la carte</h2>
+        <a href="#/voyages" class="text-sm text-ocean-700/60 hover:underline">Tout voir</a>
+      </div>
+      <div class="relative h-[420px] w-full rounded-xl border bg-gradient-to-br from-ocean-100 via-sand-100 to-lagoon-100 overflow-hidden">
+        <svg viewBox="0 0 1000 420" preserveAspectRatio="none" class="absolute inset-0 w-full h-full opacity-30">
+          <path d="M150 180 Q 200 150 240 180 T 320 200 Q 380 220 420 180 Q 480 140 540 170 Q 600 190 660 160 Q 720 130 780 170 Q 840 200 880 180" stroke="#1d3a4f" stroke-width="1.5" fill="none" />
+          <path d="M180 240 Q 250 210 320 240 Q 400 270 480 240 Q 560 210 640 240 Q 720 270 800 240" stroke="#1d3a4f" stroke-width="1" fill="none" opacity="0.6"/>
+        </svg>
+        <a href="#/voyages/bali" class="dot" style="top: 70%; left: 78%;" title="Bali"></a>
+        <a href="#/voyages/japon" class="dot" style="top: 38%; left: 84%;" title="Japon"></a>
+        <a href="#" class="dot" style="top: 88%; left: 28%;" title="Patagonie (envie)"></a>
+        <div class="absolute bottom-4 left-4 rounded-md bg-white/90 backdrop-blur px-3 py-2 text-xs text-ocean-700/70">Survolez ou cliquez un point</div>
+      </div>
+    </section>
+
+    <!-- Stats tiles -->
+    <section class="space-y-3">
+      <h2 class="font-serif text-xl font-semibold">Vie de voyageur</h2>
+      <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4" id="stats-grid"></div>
+    </section>
+
+    <!-- Widgets -->
+    <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div class="card flex flex-col rounded-xl border bg-white p-5">
+        <header class="flex items-center gap-3"><span class="flex size-9 items-center justify-center rounded-md bg-ocean-100 text-ocean-700"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg></span><div class="min-w-0 flex-1"><p class="truncate text-xs uppercase tracking-wider text-ocean-700/60">Voyages réalisés</p><p class="font-serif text-2xl font-semibold">1</p></div><a href="#/voyages" class="text-ocean-700/60 hover:text-ocean-700"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a></header>
+      </div>
+      <div class="card flex flex-col rounded-xl border bg-white p-5">
+        <header class="flex items-center gap-3"><span class="flex size-9 items-center justify-center rounded-md bg-ocean-100 text-ocean-700"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/></svg></span><div class="min-w-0 flex-1"><p class="truncate text-xs uppercase tracking-wider text-ocean-700/60">Voyages planifiés</p><p class="font-serif text-2xl font-semibold">1</p></div><a href="#/voyages/planifies" class="text-ocean-700/60 hover:text-ocean-700"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a></header>
+      </div>
+      <div class="card flex flex-col rounded-xl border bg-white p-5">
+        <header class="flex items-center gap-3"><span class="flex size-9 items-center justify-center rounded-md bg-ocean-100 text-ocean-700"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z"/></svg></span><div class="min-w-0 flex-1"><p class="truncate text-xs uppercase tracking-wider text-ocean-700/60">Mes envies</p><p class="font-serif text-2xl font-semibold">1</p></div><a href="#/envies" class="text-ocean-700/60 hover:text-ocean-700"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a></header>
+        <div class="mt-3 space-y-1.5"><div class="flex items-center justify-between border-t pt-2 text-sm"><span class="truncate">Patagonie — Torres del Paine</span><span class="rounded-full bg-sand-200 px-2 py-0.5 text-xs">researching</span></div></div>
+      </div>
+      <div class="card flex flex-col rounded-xl border bg-white p-5">
+        <header class="flex items-center gap-3"><span class="flex size-9 items-center justify-center rounded-md bg-ocean-100 text-ocean-700"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg></span><div class="min-w-0 flex-1"><p class="truncate text-xs uppercase tracking-wider text-ocean-700/60">Invitations en attente</p><p class="font-serif text-2xl font-semibold">2</p></div><a href="#/invitations" class="text-ocean-700/60 hover:text-ocean-700"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a></header>
+      </div>
+    </section>
+
+    <!-- Recently modified -->
+    <section class="space-y-3">
+      <h2 class="font-serif text-xl font-semibold flex items-center gap-2"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-ocean-700/60"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Récemment modifié</h2>
+      <div class="rounded-xl border bg-white">
+        <ul class="divide-y">
+          <li><a href="#/voyages/japon" class="flex items-center justify-between px-5 py-3 hover:bg-sand-50"><div><p class="font-medium">Japon — Tokyo, Kyoto, Kanazawa</p><p class="text-xs text-ocean-700/60">Modifié le 15 mai 2026</p></div><span class="rounded-full bg-sand-200 px-2.5 py-0.5 text-xs font-medium text-ocean-700">planning</span></a></li>
+          <li><a href="#/voyages/bali" class="flex items-center justify-between px-5 py-3 hover:bg-sand-50"><div><p class="font-medium">Échappée à Bali</p><p class="text-xs text-ocean-700/60">Modifié le 04 oct 2025</p></div><span class="rounded-full bg-lagoon-100 px-2.5 py-0.5 text-xs font-medium text-lagoon-700">completed</span></a></li>
+        </ul>
+      </div>
+    </section>
+  </div>
+</section>
+
+<!-- ─────────────────────── ROUTE: VOYAGES (réalisés) ─────────────────────── -->
+<section data-route="#/voyages" data-shell="dashboard">
+  <div class="max-w-7xl mx-auto space-y-6">
+    <header class="flex flex-wrap items-end justify-between gap-3">
+      <div class="space-y-1"><p class="text-sm text-ocean-700/60">Carnet</p><h1 class="font-serif text-3xl md:text-4xl font-semibold">Mes voyages</h1></div>
+      <a href="#/voyages/nouveau" class="inline-flex items-center gap-1.5 px-4 h-10 rounded-md bg-ocean-700 text-white text-sm font-medium hover:bg-ocean-800 shadow-soft"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="M12 5v14"/></svg>Nouveau voyage</a>
+    </header>
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <a href="#/voyages/bali" class="block group">
+        <div class="card overflow-hidden rounded-xl border bg-white">
+          <div class="relative aspect-[16/9] overflow-hidden bg-gradient-to-br from-lagoon-100 via-sand-100 to-coral-100 flex items-center justify-center"><span class="font-medium uppercase tracking-widest text-lagoon-700/60">Indonésie</span><span class="absolute left-3 top-3 rounded-full bg-lagoon-500/15 px-2.5 py-0.5 text-xs font-medium text-lagoon-700">Réalisé</span></div>
+          <div class="p-4 space-y-1.5"><h3 class="font-serif text-lg font-semibold">Échappée à Bali</h3><div class="flex items-center gap-3 text-xs text-ocean-700/60"><span>12 — 26 sep 2025</span><span>ID</span></div><p class="line-clamp-2 pt-1 text-sm text-ocean-700/60">Deux semaines entre rizières d'Ubud et plages de Canggu, en couple. Plongée à Amed, yoga, surf.</p></div>
+        </div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ─────────────────────── ROUTE: VOYAGES PLANIFIES ─────────────────────── -->
+<section data-route="#/voyages/planifies" data-shell="dashboard">
+  <div class="max-w-7xl mx-auto space-y-6">
+    <header class="flex flex-wrap items-end justify-between gap-3">
+      <div class="space-y-1"><p class="text-sm text-ocean-700/60">À venir</p><h1 class="font-serif text-3xl md:text-4xl font-semibold">Voyages planifiés</h1></div>
+      <a href="#/voyages/nouveau" class="inline-flex items-center gap-1.5 px-4 h-10 rounded-md bg-ocean-700 text-white text-sm font-medium hover:bg-ocean-800 shadow-soft"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="M12 5v14"/></svg>Nouveau voyage</a>
+    </header>
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <a href="#/voyages/japon" class="block group">
+        <div class="card overflow-hidden rounded-xl border bg-white">
+          <div class="relative aspect-[16/9] overflow-hidden bg-gradient-to-br from-coral-100 via-sand-100 to-ocean-100 flex items-center justify-center"><span class="font-medium uppercase tracking-widest text-coral-700/60">Japon</span><span class="absolute left-3 top-3 rounded-full bg-ocean-100 px-2.5 py-0.5 text-xs font-medium text-ocean-700">Planning</span></div>
+          <div class="p-4 space-y-1.5"><h3 class="font-serif text-lg font-semibold">Japon — Tokyo, Kyoto, Kanazawa</h3><div class="flex items-center gap-3 text-xs text-ocean-700/60"><span>2 — 22 avr 2026</span><span>JP</span></div><p class="line-clamp-2 pt-1 text-sm text-ocean-700/60">Trois semaines au Japon en avril 2026, idéalement pendant les cerisiers en fleurs.</p></div>
+        </div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ─────────────────────── ROUTE: DETAIL VOYAGE (Bali) ─────────────────────── -->
+<section data-route="#/voyages/bali" data-shell="dashboard">
+  <div class="max-w-7xl mx-auto space-y-8">
+    <header class="space-y-4">
+      <div class="flex flex-wrap items-center gap-3 text-sm text-ocean-700/60">
+        <a href="#/voyages" class="hover:text-ocean-900">Mes voyages</a><span>·</span>
+        <span class="rounded-full bg-lagoon-100 px-2.5 py-0.5 text-xs font-medium text-lagoon-700">Réalisé</span>
+        <span class="inline-flex items-center gap-1"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/></svg> ID</span>
+      </div>
+      <h1 class="font-serif text-4xl md:text-5xl font-semibold leading-tight">Échappée à Bali</h1>
+      <div class="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-ocean-700/60">
+        <span class="inline-flex items-center gap-1.5"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> 12 — 26 sep 2025</span>
+        <span class="inline-flex items-center gap-1.5"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/></svg> 2 voyageurs</span>
+        <span>Total : 3 200 €</span>
+      </div>
+      <p class="max-w-3xl text-ocean-700/70 text-balance">Deux semaines entre rizières d'Ubud et plages de Canggu, en couple. Plongée à Amed, yoga à Ubud, surf à Canggu.</p>
+      <div class="flex flex-wrap gap-2">
+        <button class="inline-flex items-center gap-1.5 px-4 h-9 rounded-md border border-ocean-200 bg-white text-sm font-medium hover:bg-ocean-50"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>Éditer</button>
+        <button class="inline-flex items-center gap-1.5 px-4 h-9 rounded-md border border-ocean-200 bg-white text-sm font-medium hover:bg-ocean-50">Plus d'actions ▾</button>
+      </div>
+    </header>
+
+    <!-- Tabs -->
+    <div class="space-y-4">
+      <div class="flex flex-wrap gap-1">
+        <button class="tab rounded-md border bg-white px-3 py-1.5 text-sm" data-tab="planning" data-active="true">Planning</button>
+        <button class="tab rounded-md border bg-white px-3 py-1.5 text-sm" data-tab="depenses">Dépenses</button>
+        <button class="tab rounded-md border bg-white px-3 py-1.5 text-sm" data-tab="transports">Transports</button>
+        <button class="tab rounded-md border bg-white px-3 py-1.5 text-sm" data-tab="logements">Logements</button>
+        <button class="tab rounded-md border bg-white px-3 py-1.5 text-sm" data-tab="medias">Médias</button>
+        <button class="tab rounded-md border bg-white px-3 py-1.5 text-sm" data-tab="carte">Carte</button>
+        <button class="tab rounded-md border bg-white px-3 py-1.5 text-sm" data-tab="equipe">Équipe</button>
+        <button class="tab rounded-md border bg-white px-3 py-1.5 text-sm" data-tab="notation">Notation</button>
+      </div>
+
+      <!-- Planning -->
+      <div data-tabpane="planning" class="space-y-4">
+        <ol class="relative space-y-4 border-l border-dashed pl-6 ml-3">
+          <li class="relative"><span class="absolute -left-[1.85rem] mt-1.5 size-5 rounded-full border-2 border-white bg-ocean-700 text-[0.6rem] font-semibold text-white flex items-center justify-center">12</span><div class="card rounded-xl border bg-white p-4"><header class="flex items-baseline justify-between gap-2"><div><p class="text-xs uppercase tracking-wider text-ocean-700/60">vendredi 12 sept</p><h3 class="font-serif text-lg font-semibold">Arrivée à Ubud, dîner au Locavore</h3></div><span class="rounded-full bg-sand-200 px-2.5 py-0.5 text-xs font-medium">1 activité</span></header><ul class="mt-3 space-y-1.5"><li class="flex items-center justify-between gap-3 rounded-md border bg-sand-50 px-3 py-2 text-sm"><div><p class="font-medium">Dîner Locavore</p><p class="text-xs text-ocean-700/60">20:00 · restaurant</p></div><span class="font-medium">110 €</span></li></ul></div></li>
+          <li class="relative"><span class="absolute -left-[1.85rem] mt-1.5 size-5 rounded-full border-2 border-white bg-ocean-700 text-[0.6rem] font-semibold text-white flex items-center justify-center">13</span><div class="card rounded-xl border bg-white p-4"><header><p class="text-xs uppercase tracking-wider text-ocean-700/60">samedi 13 sept</p><h3 class="font-serif text-lg font-semibold">Rizières de Tegalalang, cours de yoga</h3></header></div></li>
+          <li class="relative"><span class="absolute -left-[1.85rem] mt-1.5 size-5 rounded-full border-2 border-white bg-ocean-700 text-[0.6rem] font-semibold text-white flex items-center justify-center">19</span><div class="card rounded-xl border bg-white p-4"><header><p class="text-xs uppercase tracking-wider text-ocean-700/60">vendredi 19 sept</p><h3 class="font-serif text-lg font-semibold">Transfert vers Canggu</h3></header></div></li>
+          <li class="relative"><span class="absolute -left-[1.85rem] mt-1.5 size-5 rounded-full border-2 border-white bg-ocean-700 text-[0.6rem] font-semibold text-white flex items-center justify-center">20</span><div class="card rounded-xl border bg-white p-4"><header><p class="text-xs uppercase tracking-wider text-ocean-700/60">samedi 20 sept</p><h3 class="font-serif text-lg font-semibold">Cours de surf à Echo Beach</h3></header></div></li>
+        </ol>
+      </div>
+
+      <!-- Dépenses -->
+      <div data-tabpane="depenses" class="space-y-5 hidden">
+        <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div class="card rounded-xl border bg-ocean-50 border-ocean-200 p-4"><p class="text-xs uppercase tracking-wider text-ocean-700/60">Total</p><p class="mt-0.5 font-serif text-xl font-semibold">3 200 €</p></div>
+          <div class="card rounded-xl border bg-white p-4"><p class="text-xs uppercase tracking-wider text-ocean-700/60">Payé</p><p class="mt-0.5 font-serif text-xl font-semibold">3 200 €</p></div>
+          <div class="card rounded-xl border bg-white p-4"><p class="text-xs uppercase tracking-wider text-ocean-700/60">Reste à payer</p><p class="mt-0.5 font-serif text-xl font-semibold">0 €</p></div>
+          <div class="card rounded-xl border bg-white p-4"><p class="text-xs uppercase tracking-wider text-ocean-700/60">Par personne (2)</p><p class="mt-0.5 font-serif text-xl font-semibold">1 600 €</p></div>
+        </div>
+        <div class="card rounded-xl border bg-white p-5">
+          <h3 class="font-serif text-lg font-semibold">Répartition par catégorie</h3>
+          <ul class="mt-3 space-y-2 text-sm">
+            <li class="flex items-center justify-between"><span>Logement</span><span class="font-medium">1 790 €</span></li>
+            <li class="flex items-center justify-between"><span>Avion</span><span class="font-medium">900 €</span></li>
+            <li class="flex items-center justify-between"><span>Voiture / autres</span><span class="font-medium">60 €</span></li>
+            <li class="flex items-center justify-between"><span>Activités</span><span class="font-medium">200 €</span></li>
+            <li class="flex items-center justify-between"><span>Nourriture</span><span class="font-medium">192 €</span></li>
+            <li class="flex items-center justify-between"><span>Autres</span><span class="font-medium">58 €</span></li>
+          </ul>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button class="inline-flex items-center px-4 h-10 rounded-md bg-ocean-700 text-white text-sm font-medium hover:bg-ocean-800 shadow-soft">Ouvrir le détail des dépenses</button>
+          <button class="inline-flex items-center px-4 h-10 rounded-md border border-ocean-200 bg-white text-sm font-medium hover:bg-ocean-50">Exporter en CSV</button>
+        </div>
+      </div>
+
+      <!-- Transports -->
+      <div data-tabpane="transports" class="space-y-3 hidden">
+        <div class="card flex flex-wrap items-start gap-4 rounded-xl border bg-white p-4">
+          <span class="flex size-10 items-center justify-center rounded-md bg-ocean-100 text-ocean-700"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg></span>
+          <div class="min-w-0 flex-1 space-y-1">
+            <p class="font-medium">Paris CDG <span class="text-ocean-700/50">→</span> Denpasar DPS</p>
+            <p class="text-xs text-ocean-700/60">Singapore Airlines · SQ333+SQ938 · 15h40 · 12 330 km</p>
+            <p class="text-xs"><span class="rounded-full bg-sand-200 px-2 py-0.5 text-ocean-700">CO₂ : 2 098,5 kg · Facteur distance · confiance medium</span></p>
+          </div>
+          <span class="self-center text-sm font-medium">900 €</span>
+        </div>
+        <div class="card flex flex-wrap items-start gap-4 rounded-xl border bg-white p-4">
+          <span class="flex size-10 items-center justify-center rounded-md bg-ocean-100 text-ocean-700"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 16H9m10 0h3v-3.15a1 1 0 0 0-.84-.99L16 11l-2.7-3.6a1 1 0 0 0-.8-.4H5.24a2 2 0 0 0-1.8 1.1l-.8 1.63A6 6 0 0 0 2 12.42V16h2"/><circle cx="6.5" cy="16.5" r="2.5"/><circle cx="16.5" cy="16.5" r="2.5"/></svg></span>
+          <div class="min-w-0 flex-1 space-y-1">
+            <p class="font-medium">Ubud <span class="text-ocean-700/50">→</span> Canggu</p>
+            <p class="text-xs text-ocean-700/60">1h30 · 38 km</p>
+            <p class="text-xs"><span class="rounded-full bg-sand-200 px-2 py-0.5 text-ocean-700">CO₂ : 7,3 kg · Facteur distance · confiance high</span></p>
+          </div>
+          <span class="self-center text-sm font-medium">25 €</span>
+        </div>
+      </div>
+
+      <!-- Logements -->
+      <div data-tabpane="logements" class="hidden">
+        <ul class="grid gap-3 sm:grid-cols-2">
+          <li class="card rounded-xl border bg-white p-4">
+            <p class="font-medium">Wapa di Ume Ubud</p><p class="text-xs text-ocean-700/60">hotel</p>
+            <p class="mt-1 text-sm text-ocean-700/60">12 sep – 19 sep</p>
+            <p class="mt-1 text-sm">Jl. Suweta, Ubud</p>
+            <p class="mt-2 text-sm font-medium">840 €</p>
+            <a href="https://www.wapadiumeubud.com" target="_blank" class="mt-2 inline-block text-xs text-ocean-700 hover:underline">Voir la réservation</a>
+          </li>
+          <li class="card rounded-xl border bg-white p-4">
+            <p class="font-medium">Villa Citakara</p><p class="text-xs text-ocean-700/60">airbnb</p>
+            <p class="mt-1 text-sm text-ocean-700/60">19 sep – 26 sep</p>
+            <p class="mt-1 text-sm">Jl. Pantai Batu Bolong, Canggu</p>
+            <p class="mt-2 text-sm font-medium">950 €</p>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Médias -->
+      <div data-tabpane="medias" class="space-y-6 hidden">
+        <section class="space-y-3">
+          <h3 class="font-serif text-lg font-semibold">Vidéos & playlists</h3>
+          <div class="grid gap-4 sm:grid-cols-2">
+            <div class="card overflow-hidden rounded-xl border bg-white">
+              <div class="aspect-video bg-gradient-to-br from-ocean-200 via-lagoon-200 to-coral-200 flex items-center justify-center"><svg width="48" height="48" viewBox="0 0 24 24" fill="white" opacity="0.85"><path d="m23 7-3.5 2.5L23 12l-3.5-5z M19.5 6.5h-15v11h15v-11z m-9 3 6 2.5-6 2.5v-5z"/></svg></div>
+              <div class="p-3"><p class="line-clamp-1 text-sm font-medium">Mes carnets de Bali — épisode 1</p></div>
+            </div>
+          </div>
+        </section>
+        <section class="space-y-3">
+          <h3 class="font-serif text-lg font-semibold">Liens & documents</h3>
+          <ul class="divide-y rounded-xl border bg-white">
+            <li><a href="#" class="flex items-center justify-between gap-3 px-4 py-3 text-sm hover:bg-sand-50"><span class="inline-flex items-center gap-2"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-ocean-700/60"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>Confirmation Wapa di Ume Ubud.pdf</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg></a></li>
+          </ul>
+        </section>
+      </div>
+
+      <!-- Carte -->
+      <div data-tabpane="carte" class="hidden">
+        <div class="card rounded-xl border bg-white p-6">
+          <p class="text-sm text-ocean-700/60">Carte interactive du voyage — étapes Ubud → Canggu, 2 segments de transport (vol CDG→DPS, voiture Ubud→Canggu).</p>
+          <div class="relative h-80 mt-4 rounded-lg border bg-gradient-to-br from-ocean-100 via-sand-100 to-lagoon-100 overflow-hidden">
+            <span class="dot" style="top: 65%; left: 65%;"></span>
+            <span class="dot" style="top: 70%; left: 60%;"></span>
+            <svg class="absolute inset-0 size-full" viewBox="0 0 100 60" preserveAspectRatio="none"><path d="M65 65 L 60 70" stroke="#1d3a4f" stroke-width="0.3" stroke-dasharray="1 1" fill="none"/></svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- Équipe -->
+      <div data-tabpane="equipe" class="space-y-5 hidden">
+        <ul class="space-y-2">
+          <li class="flex items-center gap-3 rounded-lg border bg-white px-4 py-3">
+            <div class="size-9 rounded-full bg-ocean-700 text-white flex items-center justify-center text-xs font-semibold">CD</div>
+            <div class="min-w-0 flex-1"><p class="truncate font-medium">Camille Demo</p><p class="truncate text-xs text-ocean-700/60">demo@capnomade.app</p></div>
+            <span class="rounded-full bg-sand-200 px-2.5 py-0.5 text-xs">owner</span>
+          </li>
+          <li class="flex items-center gap-3 rounded-lg border bg-white px-4 py-3">
+            <div class="size-9 rounded-full bg-coral-500 text-white flex items-center justify-center text-xs font-semibold">LV</div>
+            <div class="min-w-0 flex-1"><p class="truncate font-medium">Lou Voyageuse</p><p class="truncate text-xs text-ocean-700/60">amie@capnomade.app</p></div>
+            <span class="rounded-full bg-sand-200 px-2.5 py-0.5 text-xs">editor</span>
+          </li>
+        </ul>
+        <div class="card rounded-xl border bg-white p-5">
+          <header class="mb-3 flex items-center gap-2"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-ocean-700"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg><h3 class="font-serif text-lg font-semibold">Inviter un voyageur</h3></header>
+          <div class="space-y-3">
+            <div class="grid gap-3 sm:grid-cols-[1fr_auto]">
+              <div class="space-y-1.5"><label class="text-sm font-medium">Email</label><input class="w-full h-10 rounded-md border border-ocean-200 bg-white px-3 text-sm" placeholder="ami@exemple.fr" /></div>
+              <div class="space-y-1.5"><label class="text-sm font-medium">Rôle</label><select class="w-36 h-10 rounded-md border border-ocean-200 bg-white px-3 text-sm"><option>editor</option><option>viewer</option></select></div>
+            </div>
+            <div class="space-y-1.5"><label class="text-sm font-medium">Message (optionnel)</label><textarea class="w-full rounded-md border border-ocean-200 bg-white px-3 py-2 text-sm" rows="2"></textarea></div>
+            <div class="flex justify-end"><button class="inline-flex items-center gap-1.5 px-4 h-10 rounded-md bg-ocean-700 text-white text-sm font-medium hover:bg-ocean-800 shadow-soft">Envoyer l'invitation</button></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Notation -->
+      <div data-tabpane="notation" class="hidden">
+        <div class="card rounded-xl border bg-white p-6">
+          <header class="flex items-center gap-2"><svg width="20" height="20" viewBox="0 0 24 24" fill="#f04923" stroke="#f04923" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><h3 class="font-serif text-xl font-semibold">Notation post-voyage</h3></header>
+          <div class="mt-4 grid gap-4 sm:grid-cols-2">
+            <div class="space-y-1.5"><label class="text-sm font-medium">Note globale</label><div class="flex items-center gap-3"><input type="range" min="0" max="10" step="0.5" value="9" class="flex-1 accent-coral-500" /><span class="w-12 text-right font-serif text-base font-semibold">9.0</span></div></div>
+            <div class="space-y-1.5"><label class="text-sm font-medium">Logement</label><div class="flex items-center gap-3"><input type="range" min="0" max="10" step="0.5" value="9" class="flex-1 accent-coral-500" /><span class="w-12 text-right font-serif text-base font-semibold">9.0</span></div></div>
+            <div class="space-y-1.5"><label class="text-sm font-medium">Transport</label><div class="flex items-center gap-3"><input type="range" min="0" max="10" step="0.5" value="7.5" class="flex-1 accent-coral-500" /><span class="w-12 text-right font-serif text-base font-semibold">7.5</span></div></div>
+            <div class="space-y-1.5"><label class="text-sm font-medium">Activités</label><div class="flex items-center gap-3"><input type="range" min="0" max="10" step="0.5" value="9.5" class="flex-1 accent-coral-500" /><span class="w-12 text-right font-serif text-base font-semibold">9.5</span></div></div>
+            <div class="space-y-1.5"><label class="text-sm font-medium">Rapport qualité-prix</label><div class="flex items-center gap-3"><input type="range" min="0" max="10" step="0.5" value="8" class="flex-1 accent-coral-500" /><span class="w-12 text-right font-serif text-base font-semibold">8.0</span></div></div>
+            <div class="space-y-1.5"><label class="text-sm font-medium">Rythme</label><div class="flex items-center gap-3"><input type="range" min="0" max="10" step="0.5" value="8.5" class="flex-1 accent-coral-500" /><span class="w-12 text-right font-serif text-base font-semibold">8.5</span></div></div>
+            <div class="sm:col-span-2 space-y-2"><label class="text-sm font-medium">Tags de ressenti</label><div class="flex flex-wrap gap-2"><span class="rounded-full bg-ocean-100 px-3 py-1 text-xs font-medium text-ocean-700">#ressourçant</span><span class="rounded-full bg-ocean-100 px-3 py-1 text-xs font-medium text-ocean-700">#dépaysant</span><span class="rounded-full bg-ocean-100 px-3 py-1 text-xs font-medium text-ocean-700">#romantique</span></div></div>
+            <div class="sm:col-span-2 space-y-2"><label class="text-sm font-medium">Commentaire libre</label><textarea rows="3" class="w-full rounded-md border border-ocean-200 bg-white px-3 py-2 text-sm">Rythme parfait. La plongée à Amed reste un point culminant ; à Canggu, retour au bruit après le calme d'Ubud.</textarea></div>
+            <div class="sm:col-span-2 flex justify-end"><button class="inline-flex items-center px-5 h-10 rounded-md bg-ocean-700 text-white text-sm font-medium hover:bg-ocean-800 shadow-soft">Enregistrer la note</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─────────────────────── ROUTE: DETAIL VOYAGE (Japon planning) ─────────────────────── -->
+<section data-route="#/voyages/japon" data-shell="dashboard">
+  <div class="max-w-7xl mx-auto space-y-8">
+    <header class="space-y-4">
+      <div class="flex flex-wrap items-center gap-3 text-sm text-ocean-700/60">
+        <a href="#/voyages/planifies" class="hover:text-ocean-900">Voyages planifiés</a><span>·</span>
+        <span class="rounded-full bg-ocean-100 px-2.5 py-0.5 text-xs font-medium text-ocean-700">Planning</span>
+        <span class="inline-flex items-center gap-1"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/></svg> JP</span>
+      </div>
+      <h1 class="font-serif text-4xl md:text-5xl font-semibold leading-tight">Japon — Tokyo, Kyoto, Kanazawa</h1>
+      <div class="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-ocean-700/60">
+        <span class="inline-flex items-center gap-1.5"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> 2 — 22 avr 2026</span>
+        <span class="inline-flex items-center gap-1.5"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="7" r="4"/><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/></svg> 1 voyageur</span>
+        <span>Budget cible : 6 000 €</span>
+      </div>
+      <p class="max-w-3xl text-ocean-700/70 text-balance">Trois semaines au Japon en avril 2026, idéalement pendant les cerisiers en fleurs.</p>
+      <div class="flex flex-wrap gap-2">
+        <button class="inline-flex items-center gap-1.5 px-4 h-9 rounded-md bg-lagoon-600 text-white text-sm font-medium hover:bg-lagoon-700 shadow-soft"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Marquer comme voyage fait</button>
+        <button class="inline-flex items-center gap-1.5 px-4 h-9 rounded-md border border-ocean-200 bg-white text-sm font-medium hover:bg-ocean-50">Éditer</button>
+      </div>
+    </header>
+    <div class="rounded-xl border bg-white p-6 card">
+      <p class="text-sm text-ocean-700/60">4 étapes prévues : Tokyo (7j) → Kyoto (6j) → Kanazawa (4j) → Tokyo (3j). 1 vol réservé : CDG → HND.</p>
+      <p class="mt-3 text-sm">Empreinte carbone estimée : <span class="font-medium">1 652 kg CO₂e</span> (méthode distance factor)</p>
+    </div>
+  </div>
+</section>
+
+<!-- ─────────────────────── ROUTE: ENVIES ─────────────────────── -->
+<section data-route="#/envies" data-shell="dashboard">
+  <div class="max-w-5xl mx-auto space-y-6">
+    <header class="flex flex-wrap items-end justify-between gap-3">
+      <div class="space-y-1"><p class="text-sm text-ocean-700/60">Inspirations</p><h1 class="font-serif text-3xl md:text-4xl font-semibold">Mes envies de voyages</h1></div>
+      <button class="inline-flex items-center gap-1.5 px-4 h-10 rounded-md bg-ocean-700 text-white text-sm font-medium hover:bg-ocean-800 shadow-soft"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="M12 5v14"/></svg>Ajouter une envie</button>
+    </header>
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div class="card flex flex-col rounded-xl border bg-white p-5">
+        <div class="flex items-start justify-between gap-3"><h3 class="font-serif text-lg font-semibold">Patagonie — Torres del Paine</h3><span class="rounded-full bg-sand-200 px-2.5 py-0.5 text-xs">researching</span></div>
+        <div class="mt-1 text-sm text-ocean-700/60">Chili · Puerto Natales</div>
+        <ul class="mt-3 flex flex-wrap gap-1"><li class="rounded-full bg-sand-200 px-2 py-0.5 text-xs text-ocean-700/70">#trek</li><li class="rounded-full bg-sand-200 px-2 py-0.5 text-xs text-ocean-700/70">#nature</li><li class="rounded-full bg-sand-200 px-2 py-0.5 text-xs text-ocean-700/70">#grand froid</li></ul>
+        <dl class="mt-4 grid grid-cols-2 gap-3 text-sm">
+          <div><dt class="text-xs uppercase tracking-wider text-ocean-700/60">Budget</dt><dd class="font-medium">4 500 €</dd></div>
+          <div><dt class="text-xs uppercase tracking-wider text-ocean-700/60">Durée</dt><dd class="font-medium">14 j</dd></div>
+          <div><dt class="text-xs uppercase tracking-wider text-ocean-700/60">Saison</dt><dd class="font-medium">novembre à mars</dd></div>
+          <div><dt class="text-xs uppercase tracking-wider text-ocean-700/60">Avec</dt><dd class="font-medium">couple</dd></div>
+        </dl>
+        <p class="mt-3 line-clamp-3 text-sm text-ocean-700/60">Trek W : 5 jours, refuges à réserver très à l'avance.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─────────────────────── ROUTE: INVITATIONS ─────────────────────── -->
+<section data-route="#/invitations" data-shell="dashboard">
+  <div class="max-w-3xl mx-auto space-y-8">
+    <header class="space-y-1"><p class="text-sm text-ocean-700/60">Voyages partagés avec vous</p><h1 class="font-serif text-3xl font-semibold">Invitations</h1></header>
+    <section class="space-y-3">
+      <h2 class="text-sm font-semibold uppercase tracking-wider text-ocean-700/60">En attente (2)</h2>
+      <div class="space-y-3">
+        <div class="card rounded-xl border bg-white p-5">
+          <div class="flex flex-wrap items-start justify-between gap-3">
+            <div class="space-y-1">
+              <p class="text-xs uppercase tracking-wider text-ocean-700/60">Rôle proposé : editor</p>
+              <h3 class="font-serif text-xl font-semibold">Road trip Norvège — fjords de l'ouest</h3>
+              <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ocean-700/60">
+                <span class="inline-flex items-center gap-1.5"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/></svg> 14 juin – 28 juin 2026</span>
+                <span>NO</span>
+              </div>
+            </div>
+            <span class="rounded-full bg-sand-200 px-2.5 py-0.5 text-xs">Expire le 25/05/2026</span>
+          </div>
+          <blockquote class="mt-3 border-l-2 border-ocean-300 bg-ocean-50 px-3 py-2 text-sm">Salut ! Ça te dit de te joindre à nous pour la Norvège ? J'ai déjà bloqué les ferries.</blockquote>
+          <div class="mt-4 flex flex-wrap gap-2">
+            <button class="inline-flex items-center px-4 h-10 rounded-md bg-ocean-700 text-white text-sm font-medium hover:bg-ocean-800 shadow-soft">Accepter</button>
+            <button class="inline-flex items-center px-4 h-10 rounded-md border border-ocean-200 bg-white text-sm font-medium hover:bg-ocean-50">Refuser</button>
+          </div>
+        </div>
+        <div class="card rounded-xl border bg-white p-5">
+          <div class="flex flex-wrap items-start justify-between gap-3">
+            <div class="space-y-1"><p class="text-xs uppercase tracking-wider text-ocean-700/60">Rôle proposé : viewer</p><h3 class="font-serif text-xl font-semibold">Week-end Marrakech — décembre</h3><div class="text-sm text-ocean-700/60">12 — 15 déc 2025 · MA</div></div>
+            <span class="rounded-full bg-sand-200 px-2.5 py-0.5 text-xs">Expire le 28/05/2026</span>
+          </div>
+          <div class="mt-4 flex gap-2"><button class="inline-flex items-center px-4 h-10 rounded-md bg-ocean-700 text-white text-sm font-medium">Accepter</button><button class="inline-flex items-center px-4 h-10 rounded-md border border-ocean-200 bg-white text-sm font-medium">Refuser</button></div>
+        </div>
+      </div>
+    </section>
+  </div>
+</section>
+
+<!-- ─────────────────────── ROUTE: PARAMETRES ─────────────────────── -->
+<section data-route="#/parametres" data-shell="dashboard">
+  <div class="max-w-2xl mx-auto space-y-8">
+    <header class="space-y-1"><p class="text-sm text-ocean-700/60">Votre compte</p><h1 class="font-serif text-3xl font-semibold">Paramètres</h1></header>
+    <section class="space-y-3">
+      <h2 class="font-serif text-xl">Profil</h2>
+      <form class="card rounded-xl border bg-white p-6 space-y-4">
+        <div class="space-y-2"><label class="text-sm font-medium">Nom complet</label><input class="w-full h-10 rounded-md border border-ocean-200 bg-white px-3 text-sm" value="Camille Demo" /></div>
+        <div class="grid gap-4 sm:grid-cols-2">
+          <div class="space-y-2"><label class="text-sm font-medium">Devise par défaut</label><select class="w-full h-10 rounded-md border border-ocean-200 bg-white px-3 text-sm"><option>EUR</option><option>USD</option><option>GBP</option><option>CHF</option></select></div>
+          <div class="space-y-2"><label class="text-sm font-medium">Fuseau horaire</label><input class="w-full h-10 rounded-md border border-ocean-200 bg-white px-3 text-sm" value="Europe/Paris" /></div>
+        </div>
+        <div class="pt-2"><button class="inline-flex items-center px-5 h-10 rounded-md bg-ocean-700 text-white text-sm font-medium hover:bg-ocean-800 shadow-soft">Enregistrer</button></div>
+      </form>
+    </section>
+    <section class="card rounded-xl border bg-white p-6 space-y-2">
+      <h2 class="font-serif text-xl">Données</h2>
+      <p class="text-sm text-ocean-700/60">Vous pouvez exporter ou supprimer votre compte à tout moment. La suppression cascade immédiatement sur tous les voyages dont vous êtes propriétaire.</p>
+      <div class="flex flex-wrap gap-2 pt-3">
+        <button class="rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-sand-50">Exporter mes données</button>
+        <button class="rounded-md border border-coral-300 text-coral-700 px-3 py-1.5 text-sm font-medium hover:bg-coral-50">Supprimer mon compte</button>
+      </div>
+    </section>
+  </div>
+</section>
+
+<!-- ─────────────────────── ROUTE: NOUVEAU VOYAGE ─────────────────────── -->
+<section data-route="#/voyages/nouveau" data-shell="dashboard">
+  <div class="max-w-2xl mx-auto space-y-6">
+    <header class="space-y-1"><p class="text-sm text-ocean-700/60">Nouveau projet</p><h1 class="font-serif text-3xl font-semibold">Démarrer un voyage</h1><p class="text-sm text-ocean-700/60">Commencez par le minimum : un titre, une période, une destination.</p></header>
+    <form class="card rounded-xl border bg-white p-6 space-y-5" onsubmit="event.preventDefault(); alert('Voyage créé (mockup)'); location.hash='#/voyages/japon'">
+      <div class="space-y-2"><label class="text-sm font-medium">Titre du voyage *</label><input class="w-full h-10 rounded-md border border-ocean-200 bg-white px-3 text-sm" placeholder="ex. Japon — Cerisiers 2026" required /></div>
+      <div class="grid gap-4 sm:grid-cols-2">
+        <div class="space-y-2"><label class="text-sm font-medium">Date de début</label><input type="date" class="w-full h-10 rounded-md border border-ocean-200 bg-white px-3 text-sm" /></div>
+        <div class="space-y-2"><label class="text-sm font-medium">Date de fin</label><input type="date" class="w-full h-10 rounded-md border border-ocean-200 bg-white px-3 text-sm" /></div>
+      </div>
+      <div class="grid gap-4 sm:grid-cols-2">
+        <div class="space-y-2"><label class="text-sm font-medium">Pays (codes ISO)</label><input class="w-full h-10 rounded-md border border-ocean-200 bg-white px-3 text-sm" placeholder="JP, KR" /></div>
+        <div class="space-y-2"><label class="text-sm font-medium">Statut</label><select class="w-full h-10 rounded-md border border-ocean-200 bg-white px-3 text-sm"><option>Brouillon</option><option selected>Planning</option><option>Réservé</option></select></div>
+      </div>
+      <div class="space-y-2"><label class="text-sm font-medium">Note d'intention</label><textarea rows="4" class="w-full rounded-md border border-ocean-200 bg-white px-3 py-2 text-sm" placeholder="Un mot sur l'envie de ce voyage…"></textarea></div>
+      <div class="flex justify-end"><button class="inline-flex items-center px-5 h-12 rounded-lg bg-ocean-700 text-white text-base font-medium hover:bg-ocean-800 shadow-soft">Créer le voyage</button></div>
+    </form>
+  </div>
+</section>
+
+<!-- ─────────────────────── ROUTE: FONCTIONNALITES ─────────────────────── -->
+<section data-route="#/fonctionnalites" data-shell="public">
+  <div class="max-w-7xl mx-auto px-4 md:px-8 pb-6 pt-16 text-center">
+    <p class="text-sm font-semibold uppercase tracking-widest text-ocean-700">Tour complet</p>
+    <h1 class="mx-auto mt-3 max-w-3xl font-serif text-4xl md:text-5xl font-semibold leading-tight">Toutes les fonctionnalités, sans concession.</h1>
+    <p class="mx-auto mt-3 max-w-2xl text-ocean-700/70">CapNomade ne s'arrête pas au planning : carte, empreinte carbone, exports, imports Excel, notations, envies de voyages.</p>
+  </div>
+  <section class="max-w-7xl mx-auto px-4 md:px-8 py-12">
+    <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3" id="features-grid-2"></div>
+  </section>
+</section>
+
+<!-- ─────────────────────── ROUTE: POURQUOI QUITTER EXCEL ─────────────────────── -->
+<section data-route="#/pourquoi-quitter-excel" data-shell="public">
+  <div class="max-w-7xl mx-auto px-4 md:px-8 pb-6 pt-16">
+    <div class="max-w-3xl mx-auto text-center">
+      <p class="text-sm font-semibold uppercase tracking-widest text-coral-600">Pourquoi quitter Excel</p>
+      <h1 class="mt-3 font-serif text-4xl md:text-5xl font-semibold leading-tight">Excel a fait son temps pour planifier des voyages.</h1>
+      <p class="mt-4 text-ocean-700/70">Excel est un excellent outil — pour les tableurs. Mais planifier un voyage à plusieurs, c'est gérer des dates, des devises, des étapes, des trajets, des dépenses partagées, des liens, des cartes, des vidéos et des notes. Excel ne sait rien faire de tout ça nativement. CapNomade, si.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ─────────────────────── ROUTE: CONFIDENTIALITE ─────────────────────── -->
+<section data-route="#/confidentialite" data-shell="public">
+  <main class="max-w-3xl mx-auto px-4 py-16">
+    <article class="prose prose-slate max-w-none">
+      <h1 class="font-serif text-3xl font-semibold mb-6">Confidentialité</h1>
+      <p>CapNomade applique le principe <strong>private by default</strong>. Chaque voyage est privé à sa création ; l'accès passe par des invitations explicites avec rôles (owner, editor, viewer).</p>
+      <h2 class="font-serif text-xl font-semibold mt-6 mb-3">Données collectées</h2>
+      <ul class="list-disc pl-5 space-y-1"><li>Profil minimum : email, nom, avatar (via Google OAuth)</li><li>Vos voyages et leur contenu</li><li>Vos préférences (devise par défaut, fuseau horaire, thème)</li></ul>
+      <h2 class="font-serif text-xl font-semibold mt-6 mb-3">Sécurité</h2>
+      <ul class="list-disc pl-5 space-y-1"><li>Authentification Google OAuth, sessions cookies HttpOnly</li><li>Row Level Security activée sur toutes les tables métier</li><li>Documents stockés en privé, accès via URLs signées</li><li>HSTS, CSP, X-Frame-Options, Referrer-Policy</li></ul>
+    </article>
+  </main>
+</section>
+
+<!-- ─────────────────────── ROUTE: 404 ─────────────────────── -->
+<section data-route="#/404" data-shell="public">
+  <main class="max-w-3xl mx-auto px-4 py-32 flex flex-col items-center text-center gap-6">
+    <p class="text-sm uppercase tracking-widest text-ocean-700/60">404</p>
+    <h1 class="font-serif text-4xl">Cette page a pris un détour</h1>
+    <p class="text-ocean-700/60 max-w-md">La destination que vous cherchez n'existe pas (ou plus).</p>
+    <a href="#/" class="inline-flex items-center px-5 h-12 rounded-md bg-ocean-700 text-white text-base font-medium hover:bg-ocean-800">Retour à l'accueil</a>
+  </main>
+</section>
+
+</main>
+
+<!-- ============================ ROUTER + INIT ============================ -->
+<script>
+  // ----- Features content -----
+  const FEATURES = [
+    { ic: 'calendar', t: 'Planning jour par jour', b: "Timeline claire, drag & drop, jours liés aux étapes." },
+    { ic: 'wallet', t: 'Dépenses entre voyageurs', b: "Type, devise, FX, répartition égale / % / fixe, paiements partiels, qui doit combien à qui." },
+    { ic: 'map', t: 'Carte interactive', b: 'Étapes, logements, activités. Imports KML, GPX, GeoJSON, Excel.' },
+    { ic: 'plane', t: 'Trajets & empreinte carbone', b: 'Vols, voitures, trains. Distance, durée, coût et CO₂ avec méthode de calcul.' },
+    { ic: 'video', t: 'Médias & documents', b: 'YouTube, playlists, PDFs, liens Airbnb et Drive. Privés par défaut.' },
+    { ic: 'star', t: 'Notation post-voyage', b: "Logement, transport, activités, rythme. Modifiable, taggable." },
+    { ic: 'users', t: 'Voyage collaboratif', b: 'Invitations par email, rôles owner / editor / viewer. Audit log.' },
+    { ic: 'file', t: 'Import Excel intelligent', b: "Reprenez vos anciens fichiers : assistant de mapping par feuille." },
+    { ic: 'heart', t: 'Envies de voyages', b: 'Stockez vos idées. Convertissez une envie en voyage planifié.' },
+    { ic: 'leaf', t: 'Statistiques de vie', b: 'Pays visités, km, heures de vol, dépenses moyennes, top destinations.' },
+  ];
+  const ICONS = {
+    calendar: '<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
+    wallet: '<path d="M21 12V7H5a2 2 0 0 1-2-2V19a2 2 0 0 0 2 2h16v-5"/><path d="M16 12h.01"/>',
+    map: '<polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21 3 6"/>',
+    plane: '<path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/>',
+    video: '<path d="m23 7-9 7-9-7"/><rect x="2" y="5" width="20" height="14" rx="2"/>',
+    star: '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>',
+    users: '<path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/>',
+    file: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>',
+    heart: '<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z"/>',
+    leaf: '<path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19.2 2.3c.4 5.66 1.31 9.81-3.6 14a7 7 0 0 1-4.6 3.7"/><path d="M2 22c1.78-2 2.5-3 2.5-3"/>',
+  };
+  function renderFeatures(containerId) {
+    const el = document.getElementById(containerId);
+    if (!el) return;
+    el.innerHTML = FEATURES.map(f => `
+      <article class="card group flex flex-col gap-3 rounded-2xl border bg-white p-6">
+        <div class="flex size-10 items-center justify-center rounded-lg bg-ocean-100 text-ocean-700 group-hover:bg-ocean-700 group-hover:text-white transition-colors">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${ICONS[f.ic]}</svg>
+        </div>
+        <h3 class="font-serif text-lg font-semibold">${f.t}</h3>
+        <p class="text-sm leading-relaxed text-ocean-700/60">${f.b}</p>
+      </article>
+    `).join('');
+  }
+
+  // ----- Stats grid -----
+  const STATS = [
+    ['🌍','Pays visités','1'],
+    ['✈️','Voyages réalisés','1'],
+    ['🛫','Heures de vol cumulées','15.7 h'],
+    ['🛬','Km parcourus en avion','12 330 km'],
+    ['🚗','Km en voiture','38 km'],
+    ['⏱','Heures de voiture','1.5 h'],
+    ['☁️','Empreinte CO₂ transports','2 106 kg'],
+    ['💶','Total dépensé','3 200 €'],
+    ['📊','Moyenne par voyage','3 200 €'],
+    ['📅','Moyenne par jour','228 €'],
+    ['👥','Moyenne par personne','1 600 €'],
+  ];
+  function renderStats() {
+    const el = document.getElementById('stats-grid');
+    if (!el) return;
+    el.innerHTML = STATS.map(([emoji, label, value]) => `
+      <div class="card rounded-xl border bg-white p-4">
+        <div class="flex items-center gap-3">
+          <span class="flex size-9 items-center justify-center rounded-md bg-ocean-100 text-ocean-700 text-base">${emoji}</span>
+          <div class="min-w-0">
+            <p class="truncate text-xs uppercase tracking-wider text-ocean-700/60">${label}</p>
+            <p class="mt-0.5 font-serif text-lg font-semibold">${value}</p>
+          </div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // ----- Logo template hydration -----
+  function hydrateLogos() {
+    const tpl = document.getElementById('tpl-logo');
+    document.querySelectorAll('[data-logo]').forEach(el => {
+      el.innerHTML = '';
+      el.appendChild(tpl.content.cloneNode(true));
+    });
+  }
+
+  // ----- Router -----
+  function route() {
+    const hash = window.location.hash || '#/';
+    let matched = false;
+    document.querySelectorAll('[data-route]').forEach(el => {
+      const active = el.dataset.route === hash;
+      el.classList.toggle('active', active);
+      if (active) matched = true;
+    });
+    if (!matched) {
+      document.querySelector('[data-route="#/404"]').classList.add('active');
+    }
+    const route = matched ? hash : '#/404';
+    const targetShell = document.querySelector(`[data-route="${route}"]`)?.dataset.shell;
+
+    // Show appropriate shell
+    document.querySelectorAll('[data-shell="public"], [data-shell="dashboard"]').forEach(el => {
+      if (el.matches('[data-route]')) return; // routes themselves
+      const isPublic = el.matches('header[data-shell="public"]');
+      const isDash = el.matches('div[data-shell="dashboard"]');
+      if (isPublic) el.classList.toggle('hidden', targetShell !== 'public');
+      if (isDash) el.classList.toggle('hidden', targetShell !== 'dashboard');
+    });
+
+    // If dashboard, move the route content into the dashboard main pane
+    const dashMain = document.getElementById('dashboard-main');
+    if (targetShell === 'dashboard') {
+      const routeEl = document.querySelector(`[data-route="${route}"]`);
+      if (routeEl && routeEl.parentElement !== dashMain) {
+        dashMain.innerHTML = '';
+        dashMain.appendChild(routeEl);
+        routeEl.classList.add('active');
+      }
+    }
+
+    // Highlight sidebar
+    document.querySelectorAll('.nav-item').forEach(n => {
+      const target = n.getAttribute('href');
+      const isActive = hash === target || (target !== '#/dashboard' && hash.startsWith(target));
+      n.classList.toggle('bg-ocean-700', isActive);
+      n.classList.toggle('text-white', isActive);
+      n.classList.toggle('shadow-soft', isActive);
+      n.classList.toggle('text-ocean-700/70', !isActive);
+    });
+
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }
+
+  // ----- Tabs -----
+  function bindTabs() {
+    document.addEventListener('click', (e) => {
+      const tab = e.target.closest('.tab[data-tab]');
+      if (!tab) return;
+      const tabName = tab.dataset.tab;
+      const wrapper = tab.closest('.space-y-4');
+      if (!wrapper) return;
+      wrapper.querySelectorAll('.tab').forEach(t => t.dataset.active = (t.dataset.tab === tabName));
+      wrapper.querySelectorAll('[data-tabpane]').forEach(p => p.classList.toggle('hidden', p.dataset.tabpane !== tabName));
+    });
+  }
+
+  function resetMockup() { location.hash = '#/'; }
+
+  // ----- Init -----
+  hydrateLogos();
+  renderFeatures('features-grid');
+  renderFeatures('features-grid-2');
+  renderStats();
+  bindTabs();
+  window.addEventListener('hashchange', route);
+  route();
+</script>
+</body>
+</html>
