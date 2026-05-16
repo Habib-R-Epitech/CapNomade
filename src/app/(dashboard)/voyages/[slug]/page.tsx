@@ -39,6 +39,7 @@ import { TripReview } from '@/components/trip/TripReview';
 import { TripMedia } from '@/components/trip/TripMedia';
 import { TripActions } from '@/components/trip/TripActions';
 import { CompleteTripDialog } from '@/components/trip/CompleteTripDialog';
+import { EditTripButton } from '@/components/voyages/EditTripButton';
 import { formatCurrency, formatDateRange } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
@@ -151,6 +152,20 @@ export default async function TripDetailPage({ params }: { params: Promise<{ slu
                 <CheckCircle2 className="size-4" /> Marquer comme voyage fait
               </Button>
             </CompleteTripDialog>
+          )}
+          {canEdit && (
+            <EditTripButton
+              trip={{
+                id: trip.id,
+                slug: trip.slug,
+                title: trip.title,
+                description: trip.description,
+                start_date: trip.start_date,
+                end_date: trip.end_date,
+                primary_countries: trip.primary_countries ?? [],
+                base_currency: trip.base_currency,
+              }}
+            />
           )}
           <TripActions tripId={trip.id} slug={trip.slug} status={trip.status} canEdit={canEdit} isOwner={context.isOwner} />
         </div>

@@ -16,11 +16,24 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { createTripAction } from '@/server/actions/trips';
+import { createTripAction, updateTripAction } from '@/server/actions/trips';
+
+export interface ExistingTrip {
+  id: string;
+  slug: string;
+  title: string;
+  description: string | null;
+  start_date: string | null;
+  end_date: string | null;
+  primary_countries: string[];
+  base_currency: string;
+}
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** When provided, the dialog runs in edit mode and updates this trip. */
+  existing?: ExistingTrip;
 }
 
 const MONTHS = [
@@ -30,16 +43,17 @@ const MONTHS = [
 
 const CURRENT_YEAR = new Date().getUTCFullYear();
 
-export function AddPastTripDialog({ open, onOpenChange }: Props) {
+export function AddPastTripDialog({ open, onOpenChange, existing }: Props) {
   const router = useRouter();
+  const isEdit = !!existing;
   const [pending, setPending] = React.useState(false);
-  const [title, setTitle] = React.useState('');
+  const [title, setTitle] = React.useState(existing?.title ?? '');
   const [titleError, setTitleError] = React.useState<string | null>(null);
   const [dateMode, setDateMode] = React.useState<'exact' | 'approx'>('exact');
 
   // Exact mode
-  const [startDate, setStartDate] = React.useState('');
-  const [endDate, setEndDate] = React.useState('');
+  const [startDate, setStartDate] = React.useState(existing?.start_date ?? '');
+  const [endDate, setEndDate] = React.useState(existing?.end_date ?? '');
 
   // Approximate mode
   const [approxMonth, setApproxMonth] = React.useState<number>(new Date().getUTCMonth() + 1);
@@ -47,26 +61,26 @@ export function AddPastTripDialog({ open, onOpenChange }: Props) {
   const [approxDuration, setApproxDuration] = React.useState<number>(7);
 
   // Optional fields
-  const [countries, setCountries] = React.useState('');
-  const [currency, setCurrency] = React.useState('EUR');
-  const [description, setDescription] = React.useState('');
+  const [countries, setCountries] = React.useState(existing?.primary_countries?.join(', ') ?? '');
+  const [currency, setCurrency] = React.useState(existing?.base_currency ?? 'EUR');
+  const [description, setDescription] = React.useState(existing?.description ?? '');
 
   React.useEffect(() => {
     if (!open) {
-      setTitle('');
+      setTitle(existing?.title ?? '');
       setTitleError(null);
       setDateMode('exact');
-      setStartDate('');
-      setEndDate('');
+      setStartDate(existing?.start_date ?? '');
+      setEndDate(existing?.end_date ?? '');
       setApproxMonth(new Date().getUTCMonth() + 1);
       setApproxYear(CURRENT_YEAR);
       setApproxDuration(7);
-      setCountries('');
-      setCurrency('EUR');
-      setDescription('');
+      setCountries(existing?.primary_countries?.join(', ') ?? '');
+      setCurrency(existing?.base_currency ?? 'EUR');
+      setDescription(existing?.description ?? '');
       setPending(false);
     }
-  }, [open]);
+  }, [open, existing]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -103,6 +117,27 @@ export function AddPastTripDialog({ open, onOpenChange }: Props) {
         : '';
     const finalDescription = [description.trim(), approxNote].filter(Boolean).join('\n\n') || null;
 
+    if (isEdit && existing) {
+      const res = await updateTripAction({
+        id: existing.id,
+        title: title.trim(),
+        start_date: computedStart,
+        end_date: computedEnd,
+        primary_countries: countryCodes,
+        base_currency: currency || 'EUR',
+        description: finalDescription,
+      });
+      if (!res.ok) {
+        toast.error('Modification impossible', { description: res.error });
+        setPending(false);
+        return;
+      }
+      toast.success('Voyage modifié');
+      onOpenChange(false);
+      router.refresh();
+      return;
+    }
+
     const res = await createTripAction({
       title: title.trim(),
       status: 'completed',
@@ -129,9 +164,11 @@ export function AddPastTripDialog({ open, onOpenChange }: Props) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Ajouter un voyage passé</DialogTitle>
+          <DialogTitle>{isEdit ? 'Modifier le voyage' : 'Ajouter un voyage passé'}</DialogTitle>
           <DialogDescription>
-            Saisissez les informations dont vous vous souvenez. Seul le titre est obligatoire.
+            {isEdit
+              ? 'Mettez à jour les informations de ce voyage.'
+              : 'Saisissez les informations dont vous vous souvenez. Seul le titre est obligatoire.'}
           </DialogDescription>
         </DialogHeader>
 
@@ -284,8 +321,10 @@ export function AddPastTripDialog({ open, onOpenChange }: Props) {
               {pending ? (
                 <>
                   <Loader2 className="size-4 animate-spin" />
-                  Création…
+                  {isEdit ? 'Enregistrement…' : 'Création…'}
                 </>
+              ) : isEdit ? (
+                'Enregistrer les modifications'
               ) : (
                 'Ajouter le voyage'
               )}
