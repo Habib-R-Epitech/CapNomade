@@ -1,7 +1,7 @@
 # CapNomade — État d'avancement
 
 > Ce fichier est mis à jour à chaque push.
-> Dernière mise à jour : **2026-05-16** — `authzToResult` rendu générique.
+> Dernière mise à jour : **2026-05-16** — env vars build-safe (defaults + Proxy lazy).
 
 ---
 
@@ -35,6 +35,17 @@
 
 ## Journal des fixes / patchs
 
+- **2026-05-16 · env build-safe (commit n°14)** — "Collecting page data" plantait
+  parce que `lib/env.ts` parsait Zod à l'import et Vercel n'avait pas encore
+  `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` / `NEXT_PUBLIC_APP_URL`.
+  Deux niveaux de fix : (a) chaque champ public a un `.default(...)` placeholder
+  (URL localhost + clé fake) qui permet au build de passer ; (b) `publicEnvironment`
+  est exposée via un Proxy lazy qui n'invoque `loadPublicEnv()` qu'au premier accès
+  property. Au runtime, les vraies env vars Vercel prennent le dessus. À noter :
+  pour que l'app fonctionne en prod, il faut configurer côté Vercel :
+  `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`,
+  `NEXT_PUBLIC_APP_URL`, et éventuellement `RESEND_API_KEY`, `GOOGLE_MAPS_SERVER_API_KEY`,
+  les tiles MapLibre…
 - **2026-05-16 · authzToResult générique (commit n°13)** — l'helper retournait
   `ActionResult<unknown>` (par défaut) mais `duplicateTripAction` renvoie
   `ActionResult<{ slug: string }>`. Fix : `authzToResult<T = unknown>(e): ActionResult<T>`,
