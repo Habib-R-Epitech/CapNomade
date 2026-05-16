@@ -54,7 +54,7 @@ export function WorldMap({ points }: { points: MapTripPoint[] }) {
       style: resolveStyle((resolvedTheme as 'light' | 'dark') ?? 'light'),
       center: [10, 25],
       zoom: 1.4,
-      attributionControl: true,
+      // default `attributionControl` is enabled with sensible defaults in MapLibre 4.x
     });
     mapRef.current = map;
     map.addControl(new maplibregl.NavigationControl({ visualizePitch: false }), 'top-right');

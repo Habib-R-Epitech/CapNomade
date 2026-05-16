@@ -1,7 +1,7 @@
 # CapNomade — État d'avancement
 
 > Ce fichier est mis à jour à chaque push.
-> Dernière mise à jour : **2026-05-16** — auth email+password ajoutée, fix typage devise paramètres.
+> Dernière mise à jour : **2026-05-16** — fix API MapLibre 4.x (attributionControl).
 
 ---
 
@@ -35,6 +35,9 @@
 
 ## Journal des fixes / patchs
 
+- **2026-05-16 · MapLibre 4.x API (commit n°7)** — `attributionControl: true`
+  n'est plus valide en MapLibre 4.x : le type accepte `false | AttributionControlOptions`.
+  Suppression de la ligne (le défaut affiche déjà l'attribution).
 - **2026-05-16 · Email auth + fix devise (commit n°6)** — 2 choses :
   1. **Build error** : `parametres/page.tsx` passait `session.profile.default_currency` (typé
      `string` depuis la DB) à un form dont le prop attendait l'enum
