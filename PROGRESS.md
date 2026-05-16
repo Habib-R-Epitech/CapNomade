@@ -1,7 +1,7 @@
 # CapNomade — État d'avancement
 
 > Ce fichier est mis à jour à chaque push.
-> Dernière mise à jour : **2026-05-16** — typage explicite des callbacks `setAll` Supabase.
+> Dernière mise à jour : **2026-05-16** — `authzToResult` rendu générique.
 
 ---
 
@@ -35,6 +35,10 @@
 
 ## Journal des fixes / patchs
 
+- **2026-05-16 · authzToResult générique (commit n°13)** — l'helper retournait
+  `ActionResult<unknown>` (par défaut) mais `duplicateTripAction` renvoie
+  `ActionResult<{ slug: string }>`. Fix : `authzToResult<T = unknown>(e): ActionResult<T>`,
+  TS infère T du contexte d'appel.
 - **2026-05-16 · Type setAll cookies (commit n°12)** — conséquence du drop de
   `<Database>` au commit n°10 : sans le générique, les callbacks `setAll`/`getAll`
   passés à `createServerClient` perdent leur inférence, et `cookiesToSet` est

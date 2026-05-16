@@ -206,7 +206,7 @@ function zodToFieldErrors(error: ZodError): Record<string, string> {
   return out;
 }
 
-function authzToResult(e: unknown): ActionResult {
+function authzToResult<T = unknown>(e: unknown): ActionResult<T> {
   if (e instanceof AuthorizationError) return { ok: false, error: e.code };
   return { ok: false, error: 'unknown_error' };
 }
