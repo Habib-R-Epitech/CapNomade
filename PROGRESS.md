@@ -1,7 +1,7 @@
 # CapNomade — État d'avancement
 
 > Ce fichier est mis à jour à chaque push.
-> Dernière mise à jour : **2026-05-16** — première poussée du squelette complet.
+> Dernière mise à jour : **2026-05-16** — fix build Vercel (server action inline + typedRoutes).
 
 ---
 
@@ -30,6 +30,16 @@
 | Wizard d'import (UI)                 | ⏳ TODO |
 | Insights destination (UI)            | ⏳ TODO |
 | Export/suppression de compte         | ⏳ TODO |
+
+---
+
+## Journal des fixes / patchs
+
+- **2026-05-16 · build Vercel (commit n°2)** — `src/server/actions/onboarding.ts` extrait
+  hors de `src/app/auth/onboarding/page.tsx`. Cause : Next 15 interdit d'exporter à la
+  fois `metadata` et une inline server action `'use server'` depuis un fichier
+  importé par un Client Component (`OnboardingForm.tsx`). Bonus : `typedRoutes`
+  déplacé d'`experimental` vers le top-level (Next 15.5+).
 
 ---
 
