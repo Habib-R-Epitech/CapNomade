@@ -98,31 +98,24 @@ export async function confirmImportedTripAction(
   const slug = await uniqueSlug(supabase, session.userId, baseSlug);
 
   const tripResp = await supabase
-    .from('trips')
-    .insert({
-      owner_id: session.userId,
-      title: data.meta.title,
-      slug,
-      status: 'completed',
-      visibility: 'private',
-      start_date: data.meta.start_date,
-      end_date: data.meta.end_date,
-      primary_countries: data.meta.primary_countries.map((c) => c.toUpperCase()),
-      base_currency: data.meta.base_currency.toUpperCase(),
-      total_budget_cents: data.meta.total_budget_cents,
+    .rpc('create_trip_secure', {
+      p_title: data.meta.title,
+      p_slug: slug,
+      p_description: null,
+      p_status: 'completed',
+      p_visibility: 'private',
+      p_start_date: data.meta.start_date,
+      p_end_date: data.meta.end_date,
+      p_primary_countries: data.meta.primary_countries.map((c) => c.toUpperCase()),
+      p_base_currency: data.meta.base_currency.toUpperCase(),
+      p_total_budget_cents: data.meta.total_budget_cents,
     })
-    .select('id, slug')
     .single();
 
   const trip = (tripResp.data ?? null) as { id: string; slug: string } | null;
   if (tripResp.error || !trip) {
     return { ok: false, error: tripResp.error?.message ?? 'create_trip_failed' };
   }
-
-  const memberResp = await supabase
-    .from('trip_members')
-    .insert({ trip_id: trip.id, user_id: session.userId, role: 'owner' });
-  if (memberResp.error) return { ok: false, error: memberResp.error.message };
 
   const stopsByName = new Map<string, string>();
   if (data.stops.length > 0) {

@@ -30,31 +30,22 @@ export async function createTripAction(input: unknown): Promise<ActionResult<{ s
   const baseSlug = slugify(data.title) || 'voyage';
   const slug = await uniqueSlug(supabase, session.userId, baseSlug);
 
-  const insertResp = await supabase
-    .from('trips')
-    .insert({
-      owner_id: session.userId,
-      title: data.title,
-      slug,
-      description: data.description ?? null,
-      status: data.status,
-      visibility: data.visibility,
-      start_date: data.start_date ?? null,
-      end_date: data.end_date ?? null,
-      primary_countries: data.primary_countries.map((c) => c.toUpperCase()),
-      base_currency: data.base_currency.toUpperCase(),
-      total_budget_cents: data.total_budget_cents ?? null,
+  const rpcResp = await supabase
+    .rpc('create_trip_secure', {
+      p_title: data.title,
+      p_slug: slug,
+      p_description: data.description ?? null,
+      p_status: data.status,
+      p_visibility: data.visibility,
+      p_start_date: data.start_date ?? null,
+      p_end_date: data.end_date ?? null,
+      p_primary_countries: data.primary_countries.map((c) => c.toUpperCase()),
+      p_base_currency: data.base_currency.toUpperCase(),
+      p_total_budget_cents: data.total_budget_cents ?? null,
     })
-    .select('id, slug')
     .single();
-  const trip = (insertResp.data ?? null) as { id: string; slug: string } | null;
-
-  if (insertResp.error || !trip) return { ok: false, error: insertResp.error?.message ?? 'unknown_error' };
-
-  const memberResp = await supabase
-    .from('trip_members')
-    .insert({ trip_id: trip.id, user_id: session.userId, role: 'owner' });
-  if (memberResp.error) return { ok: false, error: memberResp.error.message };
+  const trip = (rpcResp.data ?? null) as { id: string; slug: string } | null;
+  if (rpcResp.error || !trip) return { ok: false, error: rpcResp.error?.message ?? 'unknown_error' };
 
   revalidatePath('/voyages');
   revalidatePath('/dashboard');
@@ -159,29 +150,21 @@ export async function duplicateTripAction(tripId: string): Promise<ActionResult<
 
   const newSlug = await uniqueSlug(supabase, session.userId, `${original.slug}-copie`);
   const dupResp = await supabase
-    .from('trips')
-    .insert({
-      owner_id: session.userId,
-      title: `${original.title} (copie)`,
-      slug: newSlug,
-      description: original.description,
-      status: 'draft',
-      visibility: 'private',
-      start_date: original.start_date,
-      end_date: original.end_date,
-      primary_countries: original.primary_countries,
-      base_currency: original.base_currency,
-      total_budget_cents: original.total_budget_cents,
+    .rpc('create_trip_secure', {
+      p_title: `${original.title} (copie)`,
+      p_slug: newSlug,
+      p_description: original.description,
+      p_status: 'draft',
+      p_visibility: 'private',
+      p_start_date: original.start_date,
+      p_end_date: original.end_date,
+      p_primary_countries: original.primary_countries,
+      p_base_currency: original.base_currency,
+      p_total_budget_cents: original.total_budget_cents,
     })
-    .select('id, slug')
     .single();
   const dup = (dupResp.data ?? null) as { id: string; slug: string } | null;
   if (dupResp.error || !dup) return { ok: false, error: dupResp.error?.message ?? 'unknown' };
-
-  const memberResp = await supabase
-    .from('trip_members')
-    .insert({ trip_id: dup.id, user_id: session.userId, role: 'owner' });
-  if (memberResp.error) return { ok: false, error: memberResp.error.message };
 
   revalidatePath('/voyages');
   return { ok: true, data: { slug: dup.slug } };
