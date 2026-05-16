@@ -1,7 +1,7 @@
 # CapNomade — État d'avancement
 
 > Ce fichier est mis à jour à chaque push.
-> Dernière mise à jour : **2026-05-16** — fix build Vercel + bouton "Télécharger le modèle CSV".
+> Dernière mise à jour : **2026-05-16** — bouton "Voyage passé" sur /voyages (dates exactes ou approximatives).
 
 ---
 
@@ -35,6 +35,24 @@
 
 ## Journal des fixes / patchs
 
+- **2026-05-16 · Bouton "Voyage passé" sur /voyages (commit n°20)** — la page
+  `/voyages` ne liste que les voyages réalisés/archivés, donc le bouton
+  "Nouveau voyage" qui pointait vers `/voyages/nouveau` (formulaire orienté
+  voyage futur avec statut draft/planning/booked) était hors contexte. Remplacé
+  par un bouton **"Voyage passé"** qui ouvre un modal léger.
+  - Seul le **titre est obligatoire** — tout le reste est optionnel.
+  - Composant `Tabs` shadcn pour choisir entre **2 modes de période** :
+    - **Dates exactes** : 2 date pickers (start/end) que l'utilisateur peut
+      laisser vides s'il ne se souvient plus.
+    - **Approximatif** : mois (select) + année (number) + durée en jours
+      (number 1-365). Les dates concrètes sont calculées (1er du mois
+      sélectionné + durée), et une mention "(Dates approximatives — Avril 2024,
+      14 jours)" est automatiquement ajoutée à la description pour garder la
+      trace que les dates ne sont pas précises.
+  - Trip créé avec `status='completed'`, redirection vers `/voyages/[slug]`.
+  - Réutilise `createTripAction` existante (aucun changement backend).
+  - `/voyages/nouveau` reste accessible depuis `/voyages/planifies`, dashboard
+    et topbar pour les voyages futurs.
 - **2026-05-16 · fix build Vercel + template CSV (commit n°19)** — le build
   Vercel échouait sur 2 erreurs ESLint dans `ImportPastTripDialog.tsx` :
   apostrophes non échappées dans le texte d'astuce JSX (`react/no-unescaped-entities`)

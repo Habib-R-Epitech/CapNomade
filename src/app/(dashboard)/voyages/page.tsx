@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { Plus, Plane } from 'lucide-react';
+import { Plane } from 'lucide-react';
 import { requireSession } from '@/lib/auth/session';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { asRows } from '@/lib/supabase/helpers';
@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { TripCard, type TripCardData } from '@/components/dashboard/TripCard';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ImportPastTripButton } from '@/components/voyages/ImportPastTripButton';
+import { AddPastTripButton } from '@/components/voyages/AddPastTripButton';
 
 export const metadata: Metadata = { title: 'Mes voyages', robots: { index: false, follow: false } };
 
@@ -34,11 +35,7 @@ export default async function TripsPage() {
         </div>
         <div className="flex flex-wrap gap-2">
           <ImportPastTripButton />
-          <Button asChild>
-            <Link href="/voyages/nouveau">
-              <Plus className="size-4" /> Nouveau voyage
-            </Link>
-          </Button>
+          <AddPastTripButton />
         </div>
       </header>
 
