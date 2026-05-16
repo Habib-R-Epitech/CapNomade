@@ -1,16 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import {
-  Calendar,
-  MapPin,
-  Pencil,
-  Copy as CopyIcon,
-  Share2,
-  Archive,
-  CheckCircle2,
-  Users,
-} from 'lucide-react';
+import { Calendar, MapPin, Pencil, CheckCircle2, Users } from 'lucide-react';
 import { requireSession } from '@/lib/auth/session';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { assertTripAccessBySlug } from '@/lib/auth/permissions';

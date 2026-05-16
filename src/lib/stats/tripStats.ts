@@ -1,6 +1,6 @@
 import 'server-only';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
-import type { ExpenseType, TransportMode } from '@/lib/types/database';
+import type { ExpenseType } from '@/lib/types/database';
 
 export interface TripStats {
   totals: {

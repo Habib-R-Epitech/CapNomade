@@ -17,7 +17,6 @@ import { WidgetCard } from '@/components/dashboard/WidgetCard';
 import { WorldMap, type MapTripPoint } from '@/components/dashboard/WorldMap';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { formatDateRange } from '@/lib/utils';
 
 export const metadata: Metadata = { title: 'Dashboard', robots: { index: false, follow: false } };
 
@@ -87,8 +86,7 @@ export default async function DashboardHome() {
       end_date: string | null;
     };
     if (!tripJoin || seen.has(stop.trip_id)) continue;
-    const geo = stop.location as any;
-    const coords = extractLngLat(geo);
+    const coords = extractLngLat(stop.location);
     if (!coords) continue;
     points.push({
       trip_id: stop.trip_id,
@@ -122,7 +120,7 @@ export default async function DashboardHome() {
             slug: nextTrip.slug,
             start_date: nextTrip.start_date,
             end_date: nextTrip.end_date,
-            primary_countries: (nextTrip as any).primary_countries ?? [],
+            primary_countries: (nextTrip as { primary_countries?: string[] }).primary_countries ?? [],
             days_until,
           }}
         />
@@ -245,8 +243,8 @@ export default async function DashboardHome() {
 function extractLngLat(geo: unknown): { lng: number; lat: number } | null {
   if (!geo) return null;
   // PostGIS via supabase-js returns GeoJSON-like objects, hex EWKB strings, or wkt depending on config.
-  if (typeof geo === 'object' && geo && 'coordinates' in (geo as any)) {
-    const c = (geo as any).coordinates;
+  if (typeof geo === 'object' && geo !== null && 'coordinates' in geo) {
+    const c = (geo as { coordinates: unknown }).coordinates;
     if (Array.isArray(c) && c.length >= 2) return { lng: Number(c[0]), lat: Number(c[1]) };
   }
   if (typeof geo === 'string' && geo.startsWith('POINT')) {

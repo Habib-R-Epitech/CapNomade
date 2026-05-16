@@ -25,7 +25,7 @@ interface Activity {
 export function TripPlanning({
   days,
   activities,
-  canEdit,
+  canEdit: _canEdit,
 }: {
   tripId: string;
   days: Day[];

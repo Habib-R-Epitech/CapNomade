@@ -1,7 +1,7 @@
 # CapNomade — État d'avancement
 
 > Ce fichier est mis à jour à chaque push.
-> Dernière mise à jour : **2026-05-16** — fix build Vercel (server action inline + typedRoutes).
+> Dernière mise à jour : **2026-05-16** — fix lint errors bloquant le build Vercel.
 
 ---
 
@@ -35,6 +35,12 @@
 
 ## Journal des fixes / patchs
 
+- **2026-05-16 · lint Vercel (commit n°3)** — 9 erreurs ESLint qui bloquaient le build :
+  imports inutilisés (`formatDateRange`, `CopyIcon/Share2/Archive`, `TransportMode`),
+  `let` non réassignés → `const` (`used` dans `expenseSplit`), `<a>` → `<Link>` dans
+  `error.tsx`, arg unused → préfixe `_` dans `TripPlanning`, et passage à
+  `import type { ZodError }` dans `server/actions/trips.ts`. Plus nettoyage des
+  `any` du dashboard `page.tsx`.
 - **2026-05-16 · build Vercel (commit n°2)** — `src/server/actions/onboarding.ts` extrait
   hors de `src/app/auth/onboarding/page.tsx`. Cause : Next 15 interdit d'exporter à la
   fois `metadata` et une inline server action `'use server'` depuis un fichier

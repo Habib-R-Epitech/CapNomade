@@ -63,7 +63,7 @@ function distributeByPercentage(total: number, members: SplitMember[]): Allocate
     centsExact: ((m.value ?? 0) / 100) * total,
   }));
   const rounded = raw.map((r) => ({ ...r, share_cents: Math.floor(r.centsExact) }));
-  let used = rounded.reduce((a, r) => a + r.share_cents, 0);
+  const used = rounded.reduce((a, r) => a + r.share_cents, 0);
   let diff = total - used;
   rounded.sort((a, b) => b.centsExact - a.centsExact);
   for (let i = 0; diff > 0 && i < rounded.length; i++, diff--) {
@@ -93,7 +93,7 @@ function distributeByWeights(total: number, members: SplitMember[]): AllocatedSh
     centsExact: ((m.value ?? 0) / sum) * total,
   }));
   const rounded = raw.map((r) => ({ ...r, share_cents: Math.floor(r.centsExact) }));
-  let used = rounded.reduce((a, r) => a + r.share_cents, 0);
+  const used = rounded.reduce((a, r) => a + r.share_cents, 0);
   let diff = total - used;
   rounded.sort((a, b) => b.centsExact - a.centsExact);
   for (let i = 0; diff > 0 && i < rounded.length; i++, diff--) {

@@ -3,7 +3,7 @@
 import 'server-only';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { z } from 'zod';
+import type { ZodError } from 'zod';
 import { requireSession } from '@/lib/auth/session';
 import { assertTripAccess, AuthorizationError } from '@/lib/auth/permissions';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
@@ -187,7 +187,7 @@ async function uniqueSlug(
   }
 }
 
-function zodToFieldErrors(error: z.ZodError): Record<string, string> {
+function zodToFieldErrors(error: ZodError): Record<string, string> {
   const out: Record<string, string> = {};
   for (const issue of error.errors) {
     const key = issue.path.join('.') || '_root';
