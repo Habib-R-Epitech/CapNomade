@@ -1,7 +1,7 @@
 # CapNomade — État d'avancement
 
 > Ce fichier est mis à jour à chaque push.
-> Dernière mise à jour : **2026-05-16** — fix API MapLibre 4.x (attributionControl).
+> Dernière mise à jour : **2026-05-16** — fix typage `session.ts` (dernier site Supabase non casté).
 
 ---
 
@@ -35,6 +35,12 @@
 
 ## Journal des fixes / patchs
 
+- **2026-05-16 · session.ts cast (commit n°8)** — `profile.email` collapsait à
+  `never` dans `getSession`. Le refactor du Database type au commit n°5 n'a
+  apparemment pas résolu tous les cas d'inférence — peut-être le helper
+  `TableShape<Row, ...>` interfère avec l'auto-inférence de supabase-js.
+  Fix : `asRow<Profile>(resp)` pour casser explicitement. Audit grep de tous
+  les autres call sites Supabase → tous déjà castés (Auth methods incluses).
 - **2026-05-16 · MapLibre 4.x API (commit n°7)** — `attributionControl: true`
   n'est plus valide en MapLibre 4.x : le type accepte `false | AttributionControlOptions`.
   Suppression de la ligne (le défaut affiche déjà l'attribution).
