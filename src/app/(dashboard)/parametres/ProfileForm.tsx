@@ -11,16 +11,39 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { updateProfileAction } from '@/server/actions/profile';
 
+const CURRENCIES = ['EUR', 'USD', 'GBP', 'CHF', 'CAD', 'JPY', 'AUD'] as const;
+type Currency = (typeof CURRENCIES)[number];
+
 const schema = z.object({
   full_name: z.string().min(2).max(120),
-  default_currency: z.enum(['EUR', 'USD', 'GBP', 'CHF', 'CAD', 'JPY', 'AUD']),
+  default_currency: z.enum(CURRENCIES),
   timezone: z.string().min(2),
 });
 type Values = z.infer<typeof schema>;
 
-export function ProfileForm({ initial }: { initial: Values }) {
+export interface ProfileFormProps {
+  initial: {
+    full_name: string;
+    default_currency: string;
+    timezone: string;
+  };
+}
+
+function normalizeCurrency(input: string): Currency {
+  const upper = input.toUpperCase();
+  return (CURRENCIES as readonly string[]).includes(upper) ? (upper as Currency) : 'EUR';
+}
+
+export function ProfileForm({ initial }: ProfileFormProps) {
   const [pending, start] = useTransition();
-  const form = useForm<Values>({ resolver: zodResolver(schema), defaultValues: initial });
+  const form = useForm<Values>({
+    resolver: zodResolver(schema),
+    defaultValues: {
+      full_name: initial.full_name,
+      default_currency: normalizeCurrency(initial.default_currency),
+      timezone: initial.timezone,
+    },
+  });
 
   function submit(v: Values) {
     start(async () => {
@@ -40,11 +63,11 @@ export function ProfileForm({ initial }: { initial: Values }) {
           <Label>Devise par défaut</Label>
           <Select
             value={form.watch('default_currency')}
-            onValueChange={(v) => form.setValue('default_currency', v as Values['default_currency'])}
+            onValueChange={(v) => form.setValue('default_currency', v as Currency)}
           >
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
-              {['EUR', 'USD', 'GBP', 'CHF', 'CAD', 'JPY', 'AUD'].map((c) => (
+              {CURRENCIES.map((c) => (
                 <SelectItem key={c} value={c}>{c}</SelectItem>
               ))}
             </SelectContent>

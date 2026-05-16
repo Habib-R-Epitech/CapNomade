@@ -1,4 +1,6 @@
+import Link from 'next/link';
 import { SignInButton } from '@/components/auth/SignInButton';
+import { Button } from '@/components/ui/button';
 
 export function CtaSection() {
   return (
@@ -13,11 +15,14 @@ export function CtaSection() {
           Connectez-vous avec Google, importez votre dernier Excel, et reprenez la main sur vos voyages —
           tout reste privé jusqu&apos;à ce que vous décidiez de partager.
         </p>
-        <div className="mt-7 flex justify-center">
-          <SignInButton size="xl" />
+        <div className="mt-7 flex flex-wrap justify-center gap-3">
+          <Button asChild size="xl">
+            <Link href="/inscription">Créer mon compte</Link>
+          </Button>
+          <SignInButton size="xl" variant="outline" label="Continuer avec Google" />
         </div>
         <p className="mt-3 text-xs text-muted-foreground">
-          Aucune carte bancaire — votre compte est lié à votre Google Account uniquement.
+          Aucune carte bancaire — vous pouvez vous inscrire avec un email + mot de passe ou via votre compte Google.
         </p>
       </div>
     </section>

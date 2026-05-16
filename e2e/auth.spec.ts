@@ -1,9 +1,20 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Auth gating', () => {
-  test('redirects to landing with signin flag when accessing /dashboard anonymously', async ({ page }) => {
+  test('redirects to /connexion when accessing /dashboard anonymously', async ({ page }) => {
     await page.goto('/dashboard');
-    await expect(page).toHaveURL(/\/\?signin=1&redirect=%2Fdashboard/);
+    await expect(page).toHaveURL(/\/connexion\?redirect=%2Fdashboard/);
+  });
+
+  test('signup page renders email/password form', async ({ page }) => {
+    await page.goto('/inscription');
+    await expect(page.getByRole('heading', { name: /Créer un compte/i })).toBeVisible();
+    await expect(page.getByLabel(/Prénom et nom/i)).toBeVisible();
+  });
+
+  test('signin page renders email field', async ({ page }) => {
+    await page.goto('/connexion');
+    await expect(page.getByRole('heading', { name: /Se connecter/i })).toBeVisible();
   });
 
   test('public sitemap is served', async ({ request }) => {

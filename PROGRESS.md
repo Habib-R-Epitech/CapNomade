@@ -1,7 +1,7 @@
 # CapNomade — État d'avancement
 
 > Ce fichier est mis à jour à chaque push.
-> Dernière mise à jour : **2026-05-16** — fix cause racine du typage Supabase (Database type).
+> Dernière mise à jour : **2026-05-16** — auth email+password ajoutée, fix typage devise paramètres.
 
 ---
 
@@ -35,6 +35,18 @@
 
 ## Journal des fixes / patchs
 
+- **2026-05-16 · Email auth + fix devise (commit n°6)** — 2 choses :
+  1. **Build error** : `parametres/page.tsx` passait `session.profile.default_currency` (typé
+     `string` depuis la DB) à un form dont le prop attendait l'enum
+     `'EUR' | 'USD' | ...`. Fix : `ProfileForm` accepte maintenant `default_currency: string`
+     et normalise vers le set de devises supportées au moment du `defaultValues`.
+  2. **Nouvelle feature** : système email+password complet en complément de Google OAuth.
+     Pages publiques `/connexion`, `/inscription`, `/mot-de-passe-oublie`, `/reinitialisation`,
+     toutes avec formulaires Zod+RHF, gestion du flow de confirmation email Supabase,
+     redirection auto si déjà connecté, anti-énumération sur le forgot-password.
+     Header marketing pointe vers `/connexion` et `/inscription`, hero CTA propose les
+     deux options. Middleware redirige les routes protégées vers `/connexion?redirect=...`
+     au lieu de `/?signin=1`. Tests Playwright et sitemap mis à jour.
 - **2026-05-16 · TS Vercel root cause (commit n°5)** — `wishes.id` (et toute
   query Supabase) collapsait à `never` à cause de mon `Database` type qui
   manquait `Relationships: []` sur chaque table et `CompositeTypes` sur le

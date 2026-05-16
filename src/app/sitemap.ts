@@ -7,6 +7,8 @@ const PUBLIC_ROUTES = [
   '/pourquoi-quitter-excel',
   '/confidentialite',
   '/conditions',
+  '/connexion',
+  '/inscription',
 ];
 
 export default function sitemap(): MetadataRoute.Sitemap {

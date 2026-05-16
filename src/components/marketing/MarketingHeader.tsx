@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import { Compass } from 'lucide-react';
 import { siteConfig } from '@/config/site';
-import { SignInButton } from '@/components/auth/SignInButton';
 import { ThemeToggle } from '@/components/marketing/ThemeToggle';
 import { Button } from '@/components/ui/button';
 
@@ -31,9 +30,11 @@ export function MarketingHeader() {
         <div className="flex items-center gap-2">
           <ThemeToggle />
           <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
-            <Link href="/?signin=1">Se connecter</Link>
+            <Link href="/connexion">Se connecter</Link>
           </Button>
-          <SignInButton size="sm" />
+          <Button asChild size="sm">
+            <Link href="/inscription">Créer un compte</Link>
+          </Button>
         </div>
       </div>
     </header>

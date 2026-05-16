@@ -1,6 +1,8 @@
+import Link from 'next/link';
 import { Sparkles, MapPinned, Wallet, Users } from 'lucide-react';
 import { SignInButton } from '@/components/auth/SignInButton';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
 export function HeroSection() {
   return (
@@ -20,14 +22,19 @@ export function HeroSection() {
             avec les bonnes personnes — privé par défaut.
           </p>
           <div className="flex flex-wrap items-center gap-3">
-            <SignInButton size="xl" />
-            <a
-              href="#fonctionnalites"
-              className="text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-            >
-              Voir les fonctionnalités →
-            </a>
+            <Button asChild size="xl">
+              <Link href="/inscription">Créer mon compte gratuitement</Link>
+            </Button>
+            <SignInButton size="xl" variant="outline" label="Continuer avec Google" />
           </div>
+          <p className="text-xs text-muted-foreground">
+            Déjà inscrit ?{' '}
+            <Link href="/connexion" className="font-medium text-foreground hover:underline">
+              Se connecter
+            </Link>
+            {' · '}
+            <a href="#fonctionnalites" className="hover:underline">Voir les fonctionnalités</a>
+          </p>
           <ul className="flex flex-wrap gap-x-6 gap-y-2 pt-2 text-sm text-muted-foreground">
             <li className="flex items-center gap-2"><Wallet className="size-4" /> Budget par voyageur</li>
             <li className="flex items-center gap-2"><MapPinned className="size-4" /> Carte interactive</li>

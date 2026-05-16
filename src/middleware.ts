@@ -15,15 +15,16 @@ export async function middleware(request: NextRequest) {
 
   if (isProtected && !user) {
     const url = request.nextUrl.clone();
-    url.pathname = '/';
-    url.searchParams.set('signin', '1');
+    url.pathname = '/connexion';
+    url.search = '';
     url.searchParams.set('redirect', pathname);
     return NextResponse.redirect(url);
   }
 
   if (isAuthOnly && !user) {
     const url = request.nextUrl.clone();
-    url.pathname = '/';
+    url.pathname = '/connexion';
+    url.search = '';
     return NextResponse.redirect(url);
   }
 
