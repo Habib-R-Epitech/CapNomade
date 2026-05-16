@@ -1,8 +1,9 @@
 'use client';
 
 import * as React from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Upload as UploadIcon, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import {
@@ -17,6 +18,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { CountryMultiSelect } from '@/components/ui/country-multiselect';
+import { getSupabaseBrowserClient } from '@/lib/supabase/browser';
 import { createTripAction, updateTripAction } from '@/server/actions/trips';
 
 export interface ExistingTrip {
@@ -28,6 +30,7 @@ export interface ExistingTrip {
   end_date: string | null;
   primary_countries: string[];
   base_currency: string;
+  cover_image_url?: string | null;
 }
 
 interface Props {
@@ -65,6 +68,9 @@ export function AddPastTripDialog({ open, onOpenChange, existing }: Props) {
   const [countries, setCountries] = React.useState<string[]>(existing?.primary_countries ?? []);
   const [currency, setCurrency] = React.useState(existing?.base_currency ?? 'EUR');
   const [description, setDescription] = React.useState(existing?.description ?? '');
+  const [coverUrl, setCoverUrl] = React.useState<string | null>(existing?.cover_image_url ?? null);
+  const [coverUploading, setCoverUploading] = React.useState(false);
+  const coverFileInputRef = React.useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
     if (!open) {
@@ -79,9 +85,44 @@ export function AddPastTripDialog({ open, onOpenChange, existing }: Props) {
       setCountries(existing?.primary_countries ?? []);
       setCurrency(existing?.base_currency ?? 'EUR');
       setDescription(existing?.description ?? '');
+      setCoverUrl(existing?.cover_image_url ?? null);
+      setCoverUploading(false);
       setPending(false);
     }
   }, [open, existing]);
+
+  async function handleCoverUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file || !existing) return;
+    if (!file.type.startsWith('image/')) {
+      toast.error('Format invalide', { description: 'Choisissez une image JPG, PNG, WEBP ou AVIF.' });
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image trop lourde', { description: 'Maximum 5 Mo.' });
+      return;
+    }
+    setCoverUploading(true);
+    try {
+      const ext = file.name.split('.').pop()?.toLowerCase() ?? 'jpg';
+      const path = `trips/${existing.id}/cover-${Date.now()}.${ext}`;
+      const supabase = getSupabaseBrowserClient();
+      const { error } = await supabase.storage.from('trip-covers').upload(path, file, {
+        cacheControl: '3600',
+        upsert: true,
+        contentType: file.type,
+      });
+      if (error) throw error;
+      const { data } = supabase.storage.from('trip-covers').getPublicUrl(path);
+      setCoverUrl(data.publicUrl);
+      toast.success('Image uploadée');
+    } catch (err) {
+      toast.error('Upload impossible', { description: err instanceof Error ? err.message : 'erreur inconnue' });
+    } finally {
+      setCoverUploading(false);
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -124,6 +165,7 @@ export function AddPastTripDialog({ open, onOpenChange, existing }: Props) {
         primary_countries: countryCodes,
         base_currency: currency || 'EUR',
         description: finalDescription,
+        cover_image_url: coverUrl,
       });
       if (!res.ok) {
         toast.error('Modification impossible', { description: res.error });
@@ -309,6 +351,69 @@ export function AddPastTripDialog({ open, onOpenChange, existing }: Props) {
               onChange={(e) => setDescription(e.target.value)}
             />
           </div>
+
+          {isEdit && existing && (
+            <div className="space-y-2">
+              <Label>Image de couverture (optionnel)</Label>
+              {coverUrl ? (
+                <div className="space-y-2">
+                  <div className="relative h-40 w-full overflow-hidden rounded-md border bg-muted">
+                    <Image
+                      src={coverUrl}
+                      alt="Couverture du voyage"
+                      fill
+                      sizes="(min-width: 768px) 600px, 100vw"
+                      className="object-cover"
+                      unoptimized
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => coverFileInputRef.current?.click()}
+                      disabled={coverUploading}
+                    >
+                      {coverUploading ? <Loader2 className="size-4 animate-spin" /> : <UploadIcon className="size-4" />}
+                      Remplacer
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setCoverUrl(null)}
+                      disabled={coverUploading}
+                    >
+                      <Trash2 className="size-4" />
+                      Retirer
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => coverFileInputRef.current?.click()}
+                  disabled={coverUploading}
+                >
+                  {coverUploading ? <Loader2 className="size-4 animate-spin" /> : <UploadIcon className="size-4" />}
+                  Choisir une image
+                </Button>
+              )}
+              <input
+                ref={coverFileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/avif"
+                onChange={handleCoverUpload}
+                className="hidden"
+              />
+              <p className="text-xs text-muted-foreground">
+                JPG, PNG, WEBP ou AVIF — 5 Mo maximum.
+              </p>
+            </div>
+          )}
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={pending}>

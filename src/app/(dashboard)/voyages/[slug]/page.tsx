@@ -113,6 +113,16 @@ export default async function TripDetailPage({ params }: { params: Promise<{ slu
 
   return (
     <div className="mx-auto max-w-7xl space-y-8">
+      {trip.cover_image_url && (
+        <div className="relative -mx-4 h-56 overflow-hidden md:mx-0 md:h-72 md:rounded-xl">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={trip.cover_image_url}
+            alt={`Couverture de ${trip.title}`}
+            className="size-full object-cover"
+          />
+        </div>
+      )}
       <header className="space-y-4">
         <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
           <Link href="/voyages" className="hover:text-foreground">
@@ -164,6 +174,7 @@ export default async function TripDetailPage({ params }: { params: Promise<{ slu
                 end_date: trip.end_date,
                 primary_countries: trip.primary_countries ?? [],
                 base_currency: trip.base_currency,
+                cover_image_url: trip.cover_image_url,
               }}
             />
           )}

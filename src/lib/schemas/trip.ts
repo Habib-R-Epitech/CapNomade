@@ -15,6 +15,7 @@ export const createTripSchema = z.object({
   primary_countries: z.array(z.string().length(2).regex(/^[A-Z]{2}$/i)).max(20).default([]),
   base_currency: z.string().length(3).default('EUR'),
   total_budget_cents: z.number().int().nonnegative().optional().nullable(),
+  cover_image_url: z.string().url().optional().nullable(),
 });
 
 export type CreateTripInput = z.infer<typeof createTripSchema>;
