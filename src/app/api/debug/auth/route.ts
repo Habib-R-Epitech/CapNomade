@@ -55,9 +55,18 @@ export async function GET() {
     await supabase.from('trips').delete().eq('id', probedTripId);
   }
 
-  // 5. Try the same insert *inside Postgres* via an RPC. If this succeeds but
-  //    (4) fails, the issue is at the PostgREST/JWT boundary, not RLS itself.
+  // 5. Try the same insert *inside Postgres* via an RPC.
   const rpcInsertResp = await supabase.rpc('debug_try_insert_trip').single();
+
+  // 6. Try with the AFTER INSERT trigger disabled. If this succeeds, the
+  //    trigger is the actual culprit (not the trips_owner_insert policy).
+  const rpcInsertNoTrigResp = await supabase
+    .rpc('debug_try_insert_trip_no_trigger')
+    .single();
+
+  // 7. Dump the environment: auth.uid() source, handle_new_trip owner, BYPASSRLS,
+  //    and trip_members policies.
+  const envResp = await supabase.rpc('debug_dump_env').single();
 
   return NextResponse.json({
     session: { user_id: user.id, email: user.email },
@@ -82,6 +91,14 @@ export async function GET() {
     trip_insert_via_rpc: {
       data: rpcInsertResp.data ?? null,
       error: rpcInsertResp.error?.message ?? null,
+    },
+    trip_insert_with_trigger_disabled: {
+      data: rpcInsertNoTrigResp.data ?? null,
+      error: rpcInsertNoTrigResp.error?.message ?? null,
+    },
+    env_dump: {
+      data: envResp.data ?? null,
+      error: envResp.error?.message ?? null,
     },
   });
 }
