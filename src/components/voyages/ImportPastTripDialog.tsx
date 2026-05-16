@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
-import { FileSpreadsheet, Loader2, AlertCircle } from 'lucide-react';
+import { FileSpreadsheet, Loader2, AlertCircle, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import {
@@ -162,6 +162,27 @@ export function ImportPastTripDialog({ open, onOpenChange }: Props) {
   );
 }
 
+const CSV_TEMPLATE = [
+  'Libellé,Type,Montant,Devise,Date,Ville',
+  'Hôtel Ubud Jungle,accommodation,450,EUR,2024-04-12,Ubud',
+  'Vol Paris → Denpasar,transport,870,EUR,2024-04-12,Paris',
+  'Restaurant Warung Made,food,35,EUR,2024-04-13,Ubud',
+  'Cours de cuisine balinaise,activity,55,EUR,2024-04-14,Ubud',
+  'Taxi aéroport,transport,18,EUR,2024-04-25,Denpasar',
+].join('\n');
+
+function downloadTemplate() {
+  const blob = new Blob([CSV_TEMPLATE], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'modele-import-voyage-capnomade.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 function UploadStep({ onPick }: { onPick: (file: File) => void }) {
   const inputRef = React.useRef<HTMLInputElement>(null);
 
@@ -190,10 +211,23 @@ function UploadStep({ onPick }: { onPick: (file: File) => void }) {
         onChange={onChange}
         className="hidden"
       />
-      <div className="text-xs text-muted-foreground">
-        Astuce : votre tableur doit contenir une zone avec des colonnes du type{' '}
-        <b>Libellé</b>, <b>Type</b>, <b>Montant</b>, <b>Devise</b>, <b>Date</b>, <b>Ville</b>.
-        L'en-tête est détecté automatiquement où qu'il soit dans la feuille.
+      <div className="rounded-md border bg-muted/20 p-3 text-xs">
+        <div className="mb-2 font-medium">Pas de fichier sous la main&nbsp;?</div>
+        <p className="mb-3 text-muted-foreground">
+          Téléchargez notre modèle CSV, remplissez-le dans Excel ou Google Sheets, puis ré-importez-le ici.
+          Colonnes attendues&nbsp;: <b>Libellé</b>, <b>Type</b>, <b>Montant</b>, <b>Devise</b>, <b>Date</b>, <b>Ville</b>.
+        </p>
+        <Button type="button" variant="outline" size="sm" onClick={downloadTemplate}>
+          <Download className="size-4" />
+          Télécharger le modèle CSV
+        </Button>
+        <div className="mt-3 text-muted-foreground">
+          Types acceptés&nbsp;: <code className="rounded bg-muted px-1">accommodation</code>,{' '}
+          <code className="rounded bg-muted px-1">transport</code>,{' '}
+          <code className="rounded bg-muted px-1">activity</code>,{' '}
+          <code className="rounded bg-muted px-1">food</code>,{' '}
+          <code className="rounded bg-muted px-1">other</code>. Dates au format <code className="rounded bg-muted px-1">AAAA-MM-JJ</code>.
+        </div>
       </div>
     </div>
   );
@@ -388,7 +422,7 @@ function ValidateStep({
             <table className="w-full text-xs">
               <thead className="sticky top-0 bg-muted/60 text-left">
                 <tr>
-                  <th className="w-8 p-2"></th>
+                  <th className="w-8 p-2" />
                   <th className="p-2">Libellé</th>
                   <th className="p-2">Type</th>
                   <th className="p-2 text-right">Montant</th>
