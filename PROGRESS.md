@@ -1,7 +1,7 @@
 # CapNomade — État d'avancement
 
 > Ce fichier est mis à jour à chaque push.
-> Dernière mise à jour : **2026-05-16** — bouton "Voyage passé" sur /voyages (dates exactes ou approximatives).
+> Dernière mise à jour : **2026-05-16** — fix bouton "Se déconnecter" cassé par Radix `asChild`.
 
 ---
 
@@ -35,6 +35,21 @@
 
 ## Journal des fixes / patchs
 
+- **2026-05-16 · Fix bouton "Se déconnecter" (commit n°21)** — le pattern
+  `<DropdownMenuItem asChild><form><button type="submit">` ne fonctionnait pas :
+  Radix appelle `event.preventDefault()` sur `onSelect`, ce qui empêche le
+  submit du form de bouillonner. Le POST `/auth/signout` n'était donc jamais
+  envoyé. Refactor en `DropdownMenuItem` avec `onSelect` handler qui :
+  - `event.preventDefault()` pour bloquer la fermeture immédiate du menu ;
+  - `fetch('/auth/signout', { method: 'POST' })` côté client ;
+  - `router.push('/')` + `router.refresh()` pour invalider le cache et
+    rediriger.
+  État `signingOut` pour disable le bouton pendant l'appel et afficher
+  "Déconnexion…". Conséquence collatérale probable : les sessions Supabase
+  obsolètes des users qui ne pouvaient pas se déconnecter expliquent les
+  erreurs RLS "new row violates row-level security policy for table 'trips'"
+  remontées : `auth.uid()` ne matchait plus le `owner_id`. Après reconnexion
+  fresh, RLS doit repasser.
 - **2026-05-16 · Bouton "Voyage passé" sur /voyages (commit n°20)** — la page
   `/voyages` ne liste que les voyages réalisés/archivés, donc le bouton
   "Nouveau voyage" qui pointait vers `/voyages/nouveau` (formulaire orienté

@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { LogOut, Settings as SettingsIcon, User as UserIcon } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -22,6 +23,9 @@ export function UserMenu({
   email: string;
   avatarUrl: string | null;
 }) {
+  const router = useRouter();
+  const [signingOut, setSigningOut] = React.useState(false);
+
   const initials = (fullName ?? email)
     .split(/\s+/)
     .map((s) => s[0])
@@ -29,6 +33,19 @@ export function UserMenu({
     .slice(0, 2)
     .join('')
     .toUpperCase();
+
+  async function handleSignOut(e: Event) {
+    e.preventDefault();
+    if (signingOut) return;
+    setSigningOut(true);
+    try {
+      await fetch('/auth/signout', { method: 'POST' });
+    } catch {
+      // Ignore network errors — we still want to clear the local state.
+    }
+    router.push('/');
+    router.refresh();
+  }
 
   return (
     <DropdownMenu>
@@ -55,12 +72,13 @@ export function UserMenu({
           </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
-          <form action="/auth/signout" method="post" className="contents">
-            <button type="submit" className="flex w-full items-center gap-2 text-destructive">
-              <LogOut className="size-4" /> Se déconnecter
-            </button>
-          </form>
+        <DropdownMenuItem
+          onSelect={handleSignOut}
+          disabled={signingOut}
+          className="text-destructive focus:text-destructive cursor-pointer"
+        >
+          <LogOut className="size-4" />
+          {signingOut ? 'Déconnexion…' : 'Se déconnecter'}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
