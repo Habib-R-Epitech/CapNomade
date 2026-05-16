@@ -31,12 +31,13 @@ export async function GET() {
     .maybeSingle();
 
   // 2. What does auth.uid() return inside the Postgres session?
-  //    We use a tiny SELECT that runs as the current user.
   const uidResp = await supabase.rpc('debug_auth_uid').single();
 
-  // 3. Try a real insert into trips with owner_id = user.id, then rollback by
-  //    deleting if it succeeded. This tells us whether RLS would accept it
-  //    *right now*.
+  // 3. What policies are actually defined on `trips` in the database?
+  //    This catches the case where migration 0003 was only partially applied.
+  const policiesResp = await supabase.rpc('debug_trip_policies');
+
+  // 4. Try the insert via PostgREST (the path our app uses).
   const probeSlug = `debug-probe-${Date.now()}`;
   const tripResp = await supabase
     .from('trips')
@@ -54,6 +55,10 @@ export async function GET() {
     await supabase.from('trips').delete().eq('id', probedTripId);
   }
 
+  // 5. Try the same insert *inside Postgres* via an RPC. If this succeeds but
+  //    (4) fails, the issue is at the PostgREST/JWT boundary, not RLS itself.
+  const rpcInsertResp = await supabase.rpc('debug_try_insert_trip').single();
+
   return NextResponse.json({
     session: { user_id: user.id, email: user.email },
     profile: {
@@ -65,10 +70,18 @@ export async function GET() {
       value: uidResp.error ? null : (uidResp.data as { auth_uid: string | null } | null),
       error: uidResp.error?.message ?? null,
     },
-    trip_insert_probe: {
+    actual_trip_policies: {
+      data: policiesResp.data ?? null,
+      error: policiesResp.error?.message ?? null,
+    },
+    trip_insert_via_postgrest: {
       success: !!probedTripId,
       error: tripResp.error?.message ?? null,
       error_code: tripResp.error?.code ?? null,
+    },
+    trip_insert_via_rpc: {
+      data: rpcInsertResp.data ?? null,
+      error: rpcInsertResp.error?.message ?? null,
     },
   });
 }
