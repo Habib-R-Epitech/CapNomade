@@ -1,7 +1,7 @@
 # CapNomade — État d'avancement
 
 > Ce fichier est mis à jour à chaque push.
-> Dernière mise à jour : **2026-05-16** — Import de voyages passés (Excel/CSV) sur `/voyages`.
+> Dernière mise à jour : **2026-05-16** — fix build Vercel + bouton "Télécharger le modèle CSV".
 
 ---
 
@@ -35,6 +35,16 @@
 
 ## Journal des fixes / patchs
 
+- **2026-05-16 · fix build Vercel + template CSV (commit n°19)** — le build
+  Vercel échouait sur 2 erreurs ESLint dans `ImportPastTripDialog.tsx` :
+  apostrophes non échappées dans le texte d'astuce JSX (`react/no-unescaped-entities`)
+  et un `<th></th>` vide (`react/self-closing-comp`). Plutôt que d'échapper
+  bêtement les `'` avec `&apos;`, j'ai refondu le bloc d'astuce en **carte
+  d'aide avec un bouton "Télécharger le modèle CSV"** : le user clique → un
+  CSV exemple Bali (5 lignes, 5 types de dépenses) est généré côté client via
+  `Blob` + `URL.createObjectURL` et téléchargé sous le nom
+  `modele-import-voyage-capnomade.csv`. Plus de problème d'apostrophes et UX
+  bien meilleure pour les utilisateurs qui n'ont pas de fichier sous la main.
 - **2026-05-16 · Import voyages passés (commit n°18)** — nouvelle feature majeure
   sur `/voyages` : bouton "Importer un voyage passé" ouvre un modal large qui
   accepte `.xlsx`/`.xls`/`.csv` (5 Mo max). L'analyse côté serveur :
