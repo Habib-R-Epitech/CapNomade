@@ -103,7 +103,12 @@ export async function createExpenseAction(input: unknown): Promise<ActionResult<
 
 export async function deleteExpenseAction(expenseId: string): Promise<ActionResult> {
   const supabase = await getSupabaseServerClient();
-  const { data: exp } = await supabase.from('expenses').select('trip_id, trips!inner(slug)').eq('id', expenseId).single();
+  const resp = await supabase
+    .from('expenses')
+    .select('trip_id, trips!inner(slug)')
+    .eq('id', expenseId)
+    .single();
+  const exp = (resp.data ?? null) as { trip_id: string; trips: { slug: string } | null } | null;
   if (!exp) return { ok: false, error: 'not_found' };
   try {
     await assertTripAccess(exp.trip_id, 'editor');
@@ -114,7 +119,6 @@ export async function deleteExpenseAction(expenseId: string): Promise<ActionResu
   const { error } = await supabase.from('expenses').delete().eq('id', expenseId);
   if (error) return { ok: false, error: error.message };
 
-  const slug = (exp as unknown as { trips: { slug: string } }).trips.slug;
-  if (slug) revalidatePath(`/voyages/${slug}/depenses`);
+  if (exp.trips?.slug) revalidatePath(`/voyages/${exp.trips.slug}/depenses`);
   return { ok: true };
 }

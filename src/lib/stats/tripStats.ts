@@ -1,6 +1,7 @@
 import 'server-only';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
-import type { ExpenseType } from '@/lib/types/database';
+import { asRows } from '@/lib/supabase/helpers';
+import type { ExpensePaymentStatus, ExpenseType, TransportMode } from '@/lib/types/database';
 
 export interface TripStats {
   totals: {
@@ -26,6 +27,32 @@ export interface TripStats {
   days_count: number;
 }
 
+interface ExpenseRow {
+  id: string;
+  type: ExpenseType;
+  subtype: string | null;
+  amount_cents: number;
+  amount_base_cents: number | null;
+  payment_status: ExpensePaymentStatus;
+}
+interface PaymentRow {
+  paid_cents: number;
+  expense_id: string;
+}
+interface MemberCountRow {
+  user_id: string;
+}
+interface TransportRow {
+  mode: TransportMode;
+  distance_km: number | string | null;
+  duration_minutes: number | null;
+  emission_kgco2e: number | string | null;
+  cost_cents: number | null;
+}
+interface DayCountRow {
+  id: string;
+}
+
 const TYPE_TO_FIELD: Record<ExpenseType, keyof TripStats['totals']> = {
   accommodation: 'accommodation_cents',
   transport: 'plane_cents', // refined below using transport_segments
@@ -37,13 +64,7 @@ const TYPE_TO_FIELD: Record<ExpenseType, keyof TripStats['totals']> = {
 export async function loadTripStats(tripId: string): Promise<TripStats> {
   const supabase = await getSupabaseServerClient();
 
-  const [
-    { data: expenses = [] },
-    { data: payments = [] },
-    { data: members = [] },
-    { data: transports = [] },
-    { data: days = [] },
-  ] = await Promise.all([
+  const [expensesResp, paymentsResp, membersResp, transportsResp, daysResp] = await Promise.all([
     supabase
       .from('expenses')
       .select('id, type, subtype, amount_cents, amount_base_cents, payment_status')
@@ -60,6 +81,12 @@ export async function loadTripStats(tripId: string): Promise<TripStats> {
     supabase.from('trip_days').select('id').eq('trip_id', tripId),
   ]);
 
+  const expenses = asRows<ExpenseRow>(expensesResp);
+  const payments = asRows<PaymentRow>(paymentsResp);
+  const members = asRows<MemberCountRow>(membersResp);
+  const transports = asRows<TransportRow>(transportsResp);
+  const days = asRows<DayCountRow>(daysResp);
+
   const totals = {
     overall_cents: 0,
     accommodation_cents: 0,
@@ -73,11 +100,10 @@ export async function loadTripStats(tripId: string): Promise<TripStats> {
     per_person_cents: 0,
   };
 
-  for (const exp of expenses ?? []) {
+  for (const exp of expenses) {
     const cents = Number(exp.amount_base_cents ?? exp.amount_cents ?? 0);
     totals.overall_cents += cents;
     if (exp.type === 'transport') {
-      // We split transport between plane/car using subtype heuristic; falls back to plane.
       const sub = (exp.subtype ?? '').toLowerCase();
       if (sub.includes('voiture') || sub.includes('car') || sub.includes('taxi') || sub.includes('train') || sub.includes('bus')) {
         totals.car_cents += cents;
@@ -91,7 +117,7 @@ export async function loadTripStats(tripId: string): Promise<TripStats> {
     if (exp.payment_status === 'unpaid') totals.pending_cents += cents;
   }
 
-  for (const p of payments ?? []) {
+  for (const p of payments) {
     totals.paid_cents += Number(p.paid_cents ?? 0);
   }
 
@@ -102,7 +128,7 @@ export async function loadTripStats(tripId: string): Promise<TripStats> {
     total_duration_minutes: 0,
     total_emission_kgco2e: 0,
   };
-  for (const s of transports ?? []) {
+  for (const s of transports) {
     const km = Number(s.distance_km ?? 0);
     const m = Number(s.duration_minutes ?? 0);
     transport.total_distance_km += km;
@@ -110,10 +136,10 @@ export async function loadTripStats(tripId: string): Promise<TripStats> {
     transport.total_emission_kgco2e += Number(s.emission_kgco2e ?? 0);
     if (s.mode === 'plane') transport.plane_distance_km += km;
     if (s.mode === 'car') transport.car_distance_km += km;
-    if (s.cost_cents) totals.overall_cents += Number(s.cost_cents); // segment-level costs too
+    if (s.cost_cents) totals.overall_cents += Number(s.cost_cents);
   }
 
-  const membersCount = (members ?? []).length || 1;
+  const membersCount = members.length || 1;
   totals.per_person_cents = Math.round(totals.overall_cents / membersCount);
 
   return {
@@ -126,6 +152,6 @@ export async function loadTripStats(tripId: string): Promise<TripStats> {
       total_emission_kgco2e: Math.round(transport.total_emission_kgco2e * 10) / 10,
     },
     members_count: membersCount,
-    days_count: (days ?? []).length,
+    days_count: days.length,
   };
 }

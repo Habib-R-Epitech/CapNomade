@@ -1,7 +1,7 @@
 # CapNomade — État d'avancement
 
 > Ce fichier est mis à jour à chaque push.
-> Dernière mise à jour : **2026-05-16** — fix lint errors bloquant le build Vercel.
+> Dernière mise à jour : **2026-05-16** — fix typage Supabase pour les queries `!inner` join.
 
 ---
 
@@ -35,6 +35,14 @@
 
 ## Journal des fixes / patchs
 
+- **2026-05-16 · TS Vercel (commit n°4)** — sur les 11 queries Supabase utilisant
+  `!inner` join syntax, l'inférence de types collapsait à `never` parce que mon
+  `Database` type ne déclare pas `Relationships`. Ajout de `src/lib/supabase/helpers.ts`
+  (`asRow<T>`, `asRows<T>`) et typage explicite des résultats dans :
+  dashboard/page, voyages/page, voyages/planifies/page, voyages/[slug]/page,
+  invitations/page, auth/permissions, stats/globalStats, stats/tripStats,
+  server/actions/expenses. Bonus : assertTripAccessBySlug simplifié (fallback
+  `.or(...)` retiré, qui ne marchait pas).
 - **2026-05-16 · lint Vercel (commit n°3)** — 9 erreurs ESLint qui bloquaient le build :
   imports inutilisés (`formatDateRange`, `CopyIcon/Share2/Archive`, `TransportMode`),
   `let` non réassignés → `const` (`used` dans `expenseSplit`), `<a>` → `<Link>` dans

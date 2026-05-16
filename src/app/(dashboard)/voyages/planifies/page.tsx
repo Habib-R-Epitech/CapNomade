@@ -3,8 +3,9 @@ import Link from 'next/link';
 import { Plus, MapPinned } from 'lucide-react';
 import { requireSession } from '@/lib/auth/session';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { asRows } from '@/lib/supabase/helpers';
 import { Button } from '@/components/ui/button';
-import { TripCard } from '@/components/dashboard/TripCard';
+import { TripCard, type TripCardData } from '@/components/dashboard/TripCard';
 import { EmptyState } from '@/components/ui/empty-state';
 
 export const metadata: Metadata = { title: 'Voyages planifiés', robots: { index: false, follow: false } };
@@ -12,12 +13,16 @@ export const metadata: Metadata = { title: 'Voyages planifiés', robots: { index
 export default async function PlannedTripsPage() {
   const session = await requireSession();
   const supabase = await getSupabaseServerClient();
-  const { data: trips = [] } = await supabase
+  const resp = await supabase
     .from('trips')
-    .select('id, title, slug, status, description, start_date, end_date, cover_image_url, primary_countries, trip_members!inner(user_id)')
+    .select(
+      'id, title, slug, status, description, start_date, end_date, cover_image_url, primary_countries, trip_members!inner(user_id)',
+    )
     .eq('trip_members.user_id', session.userId)
     .in('status', ['draft', 'planning', 'booked'])
     .order('start_date', { ascending: true, nullsFirst: true });
+
+  const trips = asRows<TripCardData>(resp);
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
@@ -33,7 +38,7 @@ export default async function PlannedTripsPage() {
         </Button>
       </header>
 
-      {(trips ?? []).length === 0 ? (
+      {trips.length === 0 ? (
         <EmptyState
           icon={MapPinned}
           title="Aucun voyage en planification"
@@ -51,7 +56,7 @@ export default async function PlannedTripsPage() {
         />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {(trips ?? []).map((t) => (
+          {trips.map((t) => (
             <TripCard
               key={t.id}
               trip={{

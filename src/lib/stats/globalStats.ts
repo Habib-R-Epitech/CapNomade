@@ -1,5 +1,7 @@
 import 'server-only';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { asRows } from '@/lib/supabase/helpers';
+import type { ExpenseType, TransportMode, TripStatus } from '@/lib/types/database';
 
 export interface GlobalStats {
   countriesVisited: number;
@@ -21,21 +23,53 @@ export interface GlobalStats {
   annualTimeline: Array<{ year: number; trips: number }>;
 }
 
+interface TripRow {
+  id: string;
+  title: string;
+  status: TripStatus;
+  start_date: string | null;
+  end_date: string | null;
+  primary_countries: string[];
+  base_currency: string;
+  total_budget_cents: number | null;
+}
+
+interface TransportRow {
+  trip_id: string;
+  mode: TransportMode;
+  duration_minutes: number | null;
+  distance_km: number | string | null;
+  emission_kgco2e: number | string | null;
+}
+
+interface ExpenseRow {
+  trip_id: string;
+  type: ExpenseType;
+  amount_cents: number;
+  amount_base_cents: number | null;
+  currency: string;
+}
+
+interface MemberRow {
+  trip_id: string;
+  user_id: string;
+}
+
 export async function loadGlobalStats(userId: string): Promise<GlobalStats> {
   const supabase = await getSupabaseServerClient();
 
-  // Only count trips where the user is a member.
-  const { data: trips } = await supabase
+  const tripsResp = await supabase
     .from('trips')
-    .select('id, title, status, start_date, end_date, primary_countries, base_currency, total_budget_cents, trip_members!inner(user_id)')
+    .select(
+      'id, title, status, start_date, end_date, primary_countries, base_currency, total_budget_cents, trip_members!inner(user_id)',
+    )
     .eq('trip_members.user_id', userId);
+  const tripsArr = asRows<TripRow>(tripsResp);
 
-  const tripsArr = trips ?? [];
   const completedTrips = tripsArr.filter((t) => t.status === 'completed');
   const plannedTrips = tripsArr.filter((t) => t.status === 'planning' || t.status === 'booked');
   const tripIds = tripsArr.map((t) => t.id);
 
-  // Country aggregation
   const countrySet = new Set<string>();
   const countryCount = new Map<string, number>();
   for (const t of completedTrips) {
@@ -52,14 +86,14 @@ export async function loadGlobalStats(userId: string): Promise<GlobalStats> {
     }
   }
 
-  // Transports
-  const transportsRes = tripIds.length
-    ? await supabase
-        .from('transport_segments')
-        .select('mode, duration_minutes, distance_km, emission_kgco2e, trip_id')
-        .in('trip_id', tripIds)
-    : { data: [] as any[] };
-  const transports = transportsRes.data ?? [];
+  let transports: TransportRow[] = [];
+  if (tripIds.length) {
+    const resp = await supabase
+      .from('transport_segments')
+      .select('mode, duration_minutes, distance_km, emission_kgco2e, trip_id')
+      .in('trip_id', tripIds);
+    transports = asRows<TransportRow>(resp);
+  }
 
   let flightMinutes = 0;
   let flightKm = 0;
@@ -77,15 +111,15 @@ export async function loadGlobalStats(userId: string): Promise<GlobalStats> {
     }
   }
 
-  // Expenses (only completed trips)
   const completedIds = completedTrips.map((t) => t.id);
-  const expensesRes = completedIds.length
-    ? await supabase
-        .from('expenses')
-        .select('trip_id, type, amount_cents, amount_base_cents, currency')
-        .in('trip_id', completedIds)
-    : { data: [] as any[] };
-  const expenses = expensesRes.data ?? [];
+  let expenses: ExpenseRow[] = [];
+  if (completedIds.length) {
+    const resp = await supabase
+      .from('expenses')
+      .select('trip_id, type, amount_cents, amount_base_cents, currency')
+      .in('trip_id', completedIds);
+    expenses = asRows<ExpenseRow>(resp);
+  }
 
   const totalsByTrip = new Map<string, number>();
   const totalsByType = new Map<string, number>();
@@ -123,19 +157,23 @@ export async function loadGlobalStats(userId: string): Promise<GlobalStats> {
   }
   const avgDaily = totalDays > 0 ? Math.round(totalSpentCents / totalDays) : 0;
 
-  // Per-person — count members of completed trips
-  const memberRes = completedIds.length
-    ? await supabase.from('trip_members').select('trip_id, user_id').in('trip_id', completedIds)
-    : { data: [] as any[] };
+  let members: MemberRow[] = [];
+  if (completedIds.length) {
+    const resp = await supabase
+      .from('trip_members')
+      .select('trip_id, user_id')
+      .in('trip_id', completedIds);
+    members = asRows<MemberRow>(resp);
+  }
   const memberCounts = new Map<string, number>();
-  for (const m of memberRes.data ?? []) {
+  for (const m of members) {
     memberCounts.set(m.trip_id, (memberCounts.get(m.trip_id) ?? 0) + 1);
   }
   let perPersonSum = 0;
   let perPersonTripCount = 0;
   for (const [tripId, total] of totalsByTrip) {
-    const members = memberCounts.get(tripId) ?? 1;
-    perPersonSum += total / members;
+    const memberCount = memberCounts.get(tripId) ?? 1;
+    perPersonSum += total / memberCount;
     perPersonTripCount += 1;
   }
   const avgPerPerson =

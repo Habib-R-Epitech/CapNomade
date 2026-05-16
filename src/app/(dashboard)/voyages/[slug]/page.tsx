@@ -5,7 +5,29 @@ import { Calendar, MapPin, Pencil, CheckCircle2, Users } from 'lucide-react';
 import { requireSession } from '@/lib/auth/session';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { assertTripAccessBySlug } from '@/lib/auth/permissions';
+import { asRow, asRows } from '@/lib/supabase/helpers';
 import { loadTripStats } from '@/lib/stats/tripStats';
+import type { Database, TripRole } from '@/lib/types/database';
+
+type TripRow = Database['public']['Tables']['trips']['Row'];
+type StopRow = Database['public']['Tables']['trip_stops']['Row'];
+type DayRow = Database['public']['Tables']['trip_days']['Row'];
+type ActivityRow = Database['public']['Tables']['activities']['Row'];
+type AccommodationRow = Database['public']['Tables']['accommodations']['Row'];
+type TransportRow = Database['public']['Tables']['transport_segments']['Row'];
+type MediaRow = Database['public']['Tables']['media_links']['Row'];
+type ReviewRow = Database['public']['Tables']['trip_reviews']['Row'];
+
+interface MemberRow {
+  role: TripRole;
+  joined_at: string;
+  profiles: {
+    id: string;
+    full_name: string | null;
+    email: string;
+    avatar_url: string | null;
+  } | null;
+}
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -34,15 +56,15 @@ export default async function TripDetailPage({ params }: { params: Promise<{ slu
 
   const supabase = await getSupabaseServerClient();
   const [
-    { data: trip },
-    { data: stops = [] },
-    { data: days = [] },
-    { data: activities = [] },
-    { data: accommodations = [] },
-    { data: transports = [] },
-    { data: members = [] },
-    { data: review },
-    { data: media = [] },
+    tripResp,
+    stopsResp,
+    daysResp,
+    activitiesResp,
+    accommodationsResp,
+    transportsResp,
+    membersResp,
+    reviewResp,
+    mediaResp,
     stats,
   ] = await Promise.all([
     supabase.from('trips').select('*').eq('id', context.trip.id).single(),
@@ -73,6 +95,16 @@ export default async function TripDetailPage({ params }: { params: Promise<{ slu
     loadTripStats(context.trip.id),
   ]);
 
+  const trip = asRow<TripRow>(tripResp);
+  const stops = asRows<StopRow>(stopsResp);
+  const days = asRows<DayRow>(daysResp);
+  const activities = asRows<ActivityRow>(activitiesResp);
+  const accommodations = asRows<AccommodationRow>(accommodationsResp);
+  const transports = asRows<TransportRow>(transportsResp);
+  const members = asRows<MemberRow>(membersResp);
+  const review = asRow<ReviewRow>(reviewResp);
+  const media = asRows<MediaRow>(mediaResp);
+
   if (!trip) notFound();
 
   const canEdit = context.canEdit;
@@ -101,8 +133,8 @@ export default async function TripDetailPage({ params }: { params: Promise<{ slu
             </span>
           )}
           <span className="inline-flex items-center gap-1.5">
-            <Users className="size-4" /> {(members ?? []).length}{' '}
-            {((members ?? []).length || 0) > 1 ? 'voyageurs' : 'voyageur'}
+            <Users className="size-4" /> {members.length}{' '}
+            {members.length > 1 ? 'voyageurs' : 'voyageur'}
           </span>
           {stats.totals.overall_cents > 0 && (
             <span>Total : {formatCurrency(stats.totals.overall_cents, trip.base_currency)}</span>
@@ -146,8 +178,8 @@ export default async function TripDetailPage({ params }: { params: Promise<{ slu
         <TabsContent value="planning">
           <TripPlanning
             tripId={trip.id}
-            days={(days ?? []).map((d) => ({ id: d.id, date: d.date, title: d.title, notes: d.notes }))}
-            activities={(activities ?? []).map((a) => ({
+            days={days.map((d) => ({ id: d.id, date: d.date, title: d.title, notes: d.notes }))}
+            activities={activities.map((a) => ({
               id: a.id,
               title: a.title,
               day_id: a.day_id,
@@ -170,7 +202,7 @@ export default async function TripDetailPage({ params }: { params: Promise<{ slu
         </TabsContent>
         <TabsContent value="transports">
           <TripTransports
-            segments={(transports ?? []).map((t) => ({
+            segments={transports.map((t) => ({
               id: t.id,
               mode: t.mode,
               origin_label: t.origin_label,
@@ -192,7 +224,7 @@ export default async function TripDetailPage({ params }: { params: Promise<{ slu
         </TabsContent>
         <TabsContent value="logements">
           <ul className="grid gap-3 sm:grid-cols-2">
-            {(accommodations ?? []).map((a) => (
+            {accommodations.map((a) => (
               <li key={a.id} className="rounded-xl border bg-card p-4">
                 <p className="font-medium">{a.name}</p>
                 <p className="text-xs text-muted-foreground">{a.kind}</p>
@@ -217,7 +249,7 @@ export default async function TripDetailPage({ params }: { params: Promise<{ slu
                 )}
               </li>
             ))}
-            {(accommodations ?? []).length === 0 && (
+            {accommodations.length === 0 && (
               <li className="col-span-full rounded-xl border border-dashed bg-muted/30 p-8 text-center text-sm text-muted-foreground">
                 Aucun logement renseigné.
               </li>
@@ -227,7 +259,7 @@ export default async function TripDetailPage({ params }: { params: Promise<{ slu
         <TabsContent value="medias">
           <TripMedia
             tripId={trip.id}
-            links={(media ?? []).map((m) => ({
+            links={media.map((m) => ({
               id: m.id,
               url: m.url,
               kind: m.kind,
@@ -256,16 +288,9 @@ export default async function TripDetailPage({ params }: { params: Promise<{ slu
           <TripMembers
             tripId={trip.id}
             slug={trip.slug}
-            members={(members ?? []).map((m) => ({
-              role: m.role,
-              joined_at: m.joined_at,
-              user: m.profiles as unknown as {
-                id: string;
-                full_name: string | null;
-                email: string;
-                avatar_url: string | null;
-              },
-            }))}
+            members={members
+              .filter((m): m is MemberRow & { profiles: NonNullable<MemberRow['profiles']> } => m.profiles !== null)
+              .map((m) => ({ role: m.role, joined_at: m.joined_at, user: m.profiles }))}
             isOwner={context.isOwner}
           />
         </TabsContent>

@@ -1,15 +1,9 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import {
-  Plane,
-  MapPinned,
-  Heart,
-  Mail,
-  CalendarClock,
-  Sparkles,
-} from 'lucide-react';
+import { Plane, MapPinned, Heart, Mail, CalendarClock, Sparkles } from 'lucide-react';
 import { requireSession } from '@/lib/auth/session';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { asRow, asRows } from '@/lib/supabase/helpers';
 import { loadGlobalStats } from '@/lib/stats/globalStats';
 import { StatsTiles } from '@/components/dashboard/StatsTiles';
 import { UpcomingTripCard } from '@/components/dashboard/UpcomingTripCard';
@@ -17,20 +11,55 @@ import { WidgetCard } from '@/components/dashboard/WidgetCard';
 import { WorldMap, type MapTripPoint } from '@/components/dashboard/WorldMap';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import type { TripStatus, WishStatus } from '@/lib/types/database';
 
 export const metadata: Metadata = { title: 'Dashboard', robots: { index: false, follow: false } };
+
+interface NextTripRow {
+  id: string;
+  title: string;
+  slug: string;
+  start_date: string | null;
+  end_date: string | null;
+  primary_countries: string[];
+}
+interface RecentTripRow {
+  id: string;
+  title: string;
+  slug: string;
+  status: TripStatus;
+  updated_at: string;
+}
+interface WishRow {
+  id: string;
+  title: string;
+  country: string | null;
+  status: WishStatus;
+  priority: number;
+}
+interface PointStopRow {
+  trip_id: string;
+  location: unknown;
+  trips: {
+    slug: string;
+    title: string;
+    status: TripStatus;
+    start_date: string | null;
+    end_date: string | null;
+  } | null;
+}
 
 export default async function DashboardHome() {
   const session = await requireSession();
   const supabase = await getSupabaseServerClient();
 
   const [
-    { data: nextTrip },
-    { data: recentTrips },
-    { data: wishes },
-    { count: pendingInvites },
+    nextTripResp,
+    recentTripsResp,
+    wishesResp,
+    invitesCountResp,
     stats,
-    pointsResp,
+    pointStopsResp,
   ] = await Promise.all([
     supabase
       .from('trips')
@@ -67,6 +96,12 @@ export default async function DashboardHome() {
       .limit(500),
   ]);
 
+  const nextTrip = asRow<NextTripRow>(nextTripResp);
+  const recentTrips = asRows<RecentTripRow>(recentTripsResp);
+  const wishes = asRows<WishRow>(wishesResp);
+  const pendingInvites = invitesCountResp.count ?? 0;
+  const pointStops = asRows<PointStopRow>(pointStopsResp);
+
   const days_until = nextTrip?.start_date
     ? Math.max(
         0,
@@ -77,26 +112,19 @@ export default async function DashboardHome() {
   // Build map points from stops' geographies — we receive WKT-ish GeoJSON via supabase-js.
   const points: MapTripPoint[] = [];
   const seen = new Set<string>();
-  for (const stop of pointsResp.data ?? []) {
-    const tripJoin = stop.trips as unknown as {
-      slug: string;
-      title: string;
-      status: string;
-      start_date: string | null;
-      end_date: string | null;
-    };
-    if (!tripJoin || seen.has(stop.trip_id)) continue;
+  for (const stop of pointStops) {
+    if (!stop.trips || seen.has(stop.trip_id)) continue;
     const coords = extractLngLat(stop.location);
     if (!coords) continue;
     points.push({
       trip_id: stop.trip_id,
-      slug: tripJoin.slug,
-      title: tripJoin.title,
-      status: tripJoin.status,
+      slug: stop.trips.slug,
+      title: stop.trips.title,
+      status: stop.trips.status,
       lat: coords.lat,
       lng: coords.lng,
-      start_date: tripJoin.start_date,
-      end_date: tripJoin.end_date,
+      start_date: stop.trips.start_date,
+      end_date: stop.trips.end_date,
     });
     seen.add(stop.trip_id);
   }
@@ -120,7 +148,7 @@ export default async function DashboardHome() {
             slug: nextTrip.slug,
             start_date: nextTrip.start_date,
             end_date: nextTrip.end_date,
-            primary_countries: (nextTrip as { primary_countries?: string[] }).primary_countries ?? [],
+            primary_countries: nextTrip.primary_countries ?? [],
             days_until,
           }}
         />
@@ -166,13 +194,8 @@ export default async function DashboardHome() {
           href="/voyages/planifies"
           emptyHint="Aucun voyage en planification."
         />
-        <WidgetCard
-          title="Mes envies"
-          icon={Heart}
-          count={(wishes ?? []).length}
-          href="/envies"
-        >
-          {(wishes ?? []).slice(0, 3).map((w) => (
+        <WidgetCard title="Mes envies" icon={Heart} count={wishes.length} href="/envies">
+          {wishes.slice(0, 3).map((w) => (
             <div key={w.id} className="flex items-center justify-between border-t pt-2 text-sm">
               <span className="truncate">{w.title}</span>
               <Badge variant="muted">{w.status}</Badge>
@@ -182,7 +205,7 @@ export default async function DashboardHome() {
         <WidgetCard
           title="Invitations en attente"
           icon={Mail}
-          count={pendingInvites ?? 0}
+          count={pendingInvites}
           href="/invitations"
           emptyHint="Aucune invitation en attente."
         />
@@ -193,7 +216,7 @@ export default async function DashboardHome() {
           <CalendarClock className="size-5 text-muted-foreground" /> Récemment modifié
         </h2>
         <div className="rounded-xl border bg-card">
-          {(recentTrips ?? []).length === 0 ? (
+          {recentTrips.length === 0 ? (
             <div className="p-6 text-sm text-muted-foreground">
               Vous n&apos;avez pas encore de voyage.{' '}
               <Link href="/voyages/nouveau" className="text-primary hover:underline">
@@ -202,7 +225,7 @@ export default async function DashboardHome() {
             </div>
           ) : (
             <ul className="divide-y">
-              {(recentTrips ?? []).map((t) => (
+              {recentTrips.map((t) => (
                 <li key={t.id}>
                   <Link
                     href={`/voyages/${t.slug}`}
@@ -242,7 +265,6 @@ export default async function DashboardHome() {
 
 function extractLngLat(geo: unknown): { lng: number; lat: number } | null {
   if (!geo) return null;
-  // PostGIS via supabase-js returns GeoJSON-like objects, hex EWKB strings, or wkt depending on config.
   if (typeof geo === 'object' && geo !== null && 'coordinates' in geo) {
     const c = (geo as { coordinates: unknown }).coordinates;
     if (Array.isArray(c) && c.length >= 2) return { lng: Number(c[0]), lat: Number(c[1]) };
