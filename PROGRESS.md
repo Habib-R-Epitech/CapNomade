@@ -1,7 +1,7 @@
 # CapNomade — État d'avancement
 
 > Ce fichier est mis à jour à chaque push.
-> Dernière mise à jour : **2026-05-16** — fix RLS trips (trigger AFTER INSERT supprimé, insert trip_members côté app).
+> Dernière mise à jour : **2026-05-16** — fix RLS trips (RPC SECURITY DEFINER) + cleanup debug + perf modals.
 
 ---
 
@@ -35,6 +35,33 @@
 
 ## Journal des fixes / patchs
 
+- **2026-05-16 · Cleanup debug + perf modals (commit n°27)** —
+  1. Suppression de la route `/api/debug/auth` et de toutes les fonctions de
+     debug Postgres (migration `0011_cleanup_debug_functions.sql`).
+  2. Retrait du bouton "Éditer" sur `/voyages/[slug]` (pointait vers
+     `/parametres` qui n'existe pas encore — TODO P1) + remplacement du lien
+     "Carte plein écran" par un placeholder (route `/carte` TODO P2 aussi).
+  3. Perf modal "Voyage passé" : remplacé shadcn Tabs + Select (Radix Portal,
+     lourd au premier rendu) par HTML natif (toggle buttons + `<select>`).
+     Dynamic import des 2 dialogs (`AddPastTripDialog`, `ImportPastTripDialog`)
+     via `next/dynamic({ ssr: false })` pour les sortir du bundle initial de
+     `/voyages` — ils ne se chargent que quand le user clique.
+- **2026-05-16 · Fix RLS trips via SECURITY DEFINER RPC (commits 23-26)** —
+  après une chasse au bug épique (~10 commits + 6 migrations de debug), le
+  diagnostic via `/api/debug/auth` + un trap RLS a montré que `auth.uid()`
+  retourne la bonne UUID dans une fonction PL/pgSQL appelée depuis WITH CHECK
+  mais que la comparaison directe `(owner_id = auth.uid())` dans la policy
+  échoue. Les workarounds standards `(select auth.uid())` puis wrapper PL/pgSQL
+  `app_uid()` n'ont pas suffi (Postgres inline malgré tout dans ce contexte
+  Supabase/PostgREST). **Fix final** : RPC `public.create_trip_secure(...)`
+  SECURITY DEFINER owned par postgres (BYPASSRLS), qui :
+  - vérifie elle-même `auth.uid() is not null` (lève si non authentifié)
+  - force `owner_id = auth.uid()` côté serveur (pas de paramètre)
+  - insère aussi la ligne `trip_members` correspondante en une transaction
+  Les server actions `createTripAction`, `duplicateTripAction`,
+  `confirmImportedTripAction` appellent maintenant ce RPC au lieu de
+  `.from('trips').insert(...)`. La garantie de sécurité est préservée : impossible
+  pour un client de créer un trip au nom de quelqu'un d'autre.
 - **2026-05-16 · Fix RLS trips (commit n°23)** — bug majeur diagnostiqué via
   `/api/debug/auth` : tous les voyants étaient au vert
   (`auth.uid()` = `session.user_id` = `profile.id`, policy `trips_owner_insert`
