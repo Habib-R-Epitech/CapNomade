@@ -1,7 +1,7 @@
 # CapNomade — État d'avancement
 
 > Ce fichier est mis à jour à chaque push.
-> Dernière mise à jour : **2026-05-16** — fix typage Supabase pour les queries `!inner` join.
+> Dernière mise à jour : **2026-05-16** — fix cause racine du typage Supabase (Database type).
 
 ---
 
@@ -35,6 +35,15 @@
 
 ## Journal des fixes / patchs
 
+- **2026-05-16 · TS Vercel root cause (commit n°5)** — `wishes.id` (et toute
+  query Supabase) collapsait à `never` à cause de mon `Database` type qui
+  manquait `Relationships: []` sur chaque table et `CompositeTypes` sur le
+  schéma. Refactor `src/lib/types/database.ts` avec un helper `TableShape<Row, K>`
+  qui ajoute `Relationships: []` à toutes les tables + ajout de
+  `CompositeTypes: Record<string, never>`. En filet de sécurité : cast `asRow`/
+  `asRows` ajouté sur 7 call sites restants (envies/page, auth/callback,
+  api/.../expenses.csv, api/.../geojson, server/actions/{invitations, trips,
+  reviews, expenses}).
 - **2026-05-16 · TS Vercel (commit n°4)** — sur les 11 queries Supabase utilisant
   `!inner` join syntax, l'inférence de types collapsait à `never` parce que mon
   `Database` type ne déclare pas `Relationships`. Ajout de `src/lib/supabase/helpers.ts`

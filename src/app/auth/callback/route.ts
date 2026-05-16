@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { asRow } from '@/lib/supabase/helpers';
 
 /**
  * OAuth callback handler.
@@ -30,11 +31,12 @@ export async function GET(request: NextRequest) {
 
   // Determine if this is a first-time login (no onboarding_completed_at).
   const userId = data.session.user.id;
-  const { data: profile } = await supabase
+  const profileResp = await supabase
     .from('profiles')
     .select('onboarding_completed_at')
     .eq('id', userId)
     .maybeSingle();
+  const profile = asRow<{ onboarding_completed_at: string | null }>(profileResp);
 
   const needsOnboarding = !profile?.onboarding_completed_at;
   const destination = needsOnboarding ? '/auth/onboarding' : next;

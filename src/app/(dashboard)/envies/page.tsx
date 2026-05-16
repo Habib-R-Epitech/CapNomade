@@ -2,22 +2,28 @@ import type { Metadata } from 'next';
 import { Heart, Plus } from 'lucide-react';
 import { requireSession } from '@/lib/auth/session';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { asRows } from '@/lib/supabase/helpers';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { formatCurrency } from '@/lib/utils';
+import type { Database } from '@/lib/types/database';
+
+type WishRow = Database['public']['Tables']['wish_items']['Row'];
 
 export const metadata: Metadata = { title: 'Mes envies', robots: { index: false, follow: false } };
 
 export default async function WishesPage() {
   const session = await requireSession();
   const supabase = await getSupabaseServerClient();
-  const { data: wishes = [] } = await supabase
+  const resp = await supabase
     .from('wish_items')
     .select('*')
     .eq('user_id', session.userId)
     .order('priority', { ascending: false });
+
+  const wishes = asRows<WishRow>(resp);
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
@@ -31,7 +37,7 @@ export default async function WishesPage() {
         </Button>
       </header>
 
-      {(wishes ?? []).length === 0 ? (
+      {wishes.length === 0 ? (
         <EmptyState
           icon={Heart}
           title="Pas encore d'envie enregistrée"
@@ -39,7 +45,7 @@ export default async function WishesPage() {
         />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {(wishes ?? []).map((w) => (
+          {wishes.map((w) => (
             <Card key={w.id} className="flex flex-col p-5">
               <div className="flex items-start justify-between gap-3">
                 <h3 className="font-serif text-lg font-semibold">{w.title}</h3>

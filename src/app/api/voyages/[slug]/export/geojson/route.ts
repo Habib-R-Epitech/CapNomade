@@ -1,6 +1,23 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { assertTripAccessBySlug, AuthorizationError } from '@/lib/auth/permissions';
+import { asRows } from '@/lib/supabase/helpers';
+import type { Json } from '@/lib/types/database';
+
+interface StopExportRow {
+  id: string;
+  name: string;
+  city: string | null;
+  country_code: string | null;
+  order_index: number;
+  location: unknown;
+}
+interface FeatureExportRow {
+  feature_type: 'point' | 'line' | 'polygon';
+  geometry: unknown;
+  label: string | null;
+  properties: Json;
+}
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -12,27 +29,31 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ slu
     throw e;
   }
   const supabase = await getSupabaseServerClient();
-  const [{ data: stops = [] }, { data: features = [] }] = await Promise.all([
+  const [stopsResp, featuresResp] = await Promise.all([
     supabase
       .from('trip_stops')
       .select('id, name, city, country_code, order_index, location')
       .eq('trip_id', ctx.trip.id),
-    supabase.from('map_features').select('feature_type, geometry, label, properties').eq('trip_id', ctx.trip.id),
+    supabase
+      .from('map_features')
+      .select('feature_type, geometry, label, properties')
+      .eq('trip_id', ctx.trip.id),
   ]);
+  const stops = asRows<StopExportRow>(stopsResp);
+  const features = asRows<FeatureExportRow>(featuresResp);
 
   const collection = {
     type: 'FeatureCollection',
     features: [
-      ...(stops ?? [])
+      ...stops
         .map((s) => featureFrom(s.location, { name: s.name, city: s.city, country: s.country_code, kind: 'stop' }))
-        .filter(Boolean),
-      ...(features ?? [])
-        .map((f) => ({
-          type: 'Feature',
-          geometry: f.geometry,
-          properties: { label: f.label, kind: f.feature_type, ...(f.properties as object) },
-        })),
-    ].filter(Boolean),
+        .filter((f): f is NonNullable<typeof f> => f !== null),
+      ...features.map((f) => ({
+        type: 'Feature',
+        geometry: f.geometry,
+        properties: { label: f.label, kind: f.feature_type, ...(f.properties as object) },
+      })),
+    ],
   };
 
   return NextResponse.json(collection, {

@@ -42,7 +42,8 @@ export async function upsertReviewAction(input: unknown): Promise<ActionResult> 
   if (error) return { ok: false, error: error.message };
 
   // If this is a transition from "planning/booked" to "completed", flip status.
-  const { data: trip } = await supabase.from('trips').select('status, slug').eq('id', data.trip_id).single();
+  const tripResp = await supabase.from('trips').select('status, slug').eq('id', data.trip_id).single();
+  const trip = (tripResp.data ?? null) as { status: string; slug: string } | null;
   if (trip && trip.status !== 'completed' && trip.status !== 'archived') {
     await supabase.from('trips').update({ status: 'completed' }).eq('id', data.trip_id);
     await supabase.from('audit_logs').insert({

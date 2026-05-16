@@ -28,7 +28,7 @@ export async function createExpenseAction(input: unknown): Promise<ActionResult<
   const status =
     paidTotal === 0 ? 'unpaid' : paidTotal >= data.amount_cents ? 'paid' : 'partial';
 
-  const { data: expense, error } = await supabase
+  const insertResp = await supabase
     .from('expenses')
     .insert({
       trip_id: data.trip_id,
@@ -51,7 +51,10 @@ export async function createExpenseAction(input: unknown): Promise<ActionResult<
     })
     .select('id')
     .single();
-  if (error || !expense) return { ok: false, error: error?.message ?? 'unknown_error' };
+  const expense = (insertResp.data ?? null) as { id: string } | null;
+  if (insertResp.error || !expense) {
+    return { ok: false, error: insertResp.error?.message ?? 'unknown_error' };
+  }
 
   // Allocations
   const shares = computeSplit({
@@ -96,7 +99,8 @@ export async function createExpenseAction(input: unknown): Promise<ActionResult<
     });
   }
 
-  const { data: trip } = await supabase.from('trips').select('slug').eq('id', data.trip_id).single();
+  const tripResp = await supabase.from('trips').select('slug').eq('id', data.trip_id).single();
+  const trip = (tripResp.data ?? null) as { slug: string } | null;
   if (trip?.slug) revalidatePath(`/voyages/${trip.slug}/depenses`);
   return { ok: true, data: { id: expense.id } };
 }

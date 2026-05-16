@@ -26,20 +26,21 @@ export async function createInvitationAction(input: unknown): Promise<ActionResu
   const supabase = await getSupabaseServerClient();
 
   // Idempotency: don't recreate a pending invite for the same email.
-  const { data: existing } = await supabase
+  const existingResp = await supabase
     .from('trip_invitations')
     .select('id, token, status')
     .eq('trip_id', trip_id)
     .eq('invited_email', email)
     .in('status', ['pending'])
     .maybeSingle();
+  const existing = (existingResp.data ?? null) as { id: string; token: string } | null;
 
   let token = existing?.token;
   let invitationId = existing?.id;
 
   if (!existing) {
     token = randomBytes(24).toString('base64url');
-    const { data: created, error } = await supabase
+    const createdResp = await supabase
       .from('trip_invitations')
       .insert({
         trip_id,
@@ -51,12 +52,14 @@ export async function createInvitationAction(input: unknown): Promise<ActionResu
       })
       .select('id')
       .single();
-    if (error || !created) return { ok: false, error: error?.message ?? 'unknown_error' };
+    const created = (createdResp.data ?? null) as { id: string } | null;
+    if (createdResp.error || !created) return { ok: false, error: createdResp.error?.message ?? 'unknown_error' };
     invitationId = created.id;
   }
 
   // Trip info for the email
-  const { data: trip } = await supabase.from('trips').select('title, slug').eq('id', trip_id).single();
+  const tripResp = await supabase.from('trips').select('title, slug').eq('id', trip_id).single();
+  const trip = (tripResp.data ?? null) as { title: string; slug: string } | null;
   await sendInvitationEmail({
     toEmail: email,
     inviterName: session.profile.full_name ?? session.email,
@@ -90,7 +93,12 @@ export async function respondInvitationAction(input: unknown): Promise<ActionRes
   if (action === 'accept') {
     const { data: tripId, error } = await supabase.rpc('accept_trip_invitation', { p_token: token });
     if (error) return { ok: false, error: error.message };
-    const { data: trip } = await supabase.from('trips').select('slug').eq('id', tripId as unknown as string).maybeSingle();
+    const tripResp = await supabase
+      .from('trips')
+      .select('slug')
+      .eq('id', tripId as unknown as string)
+      .maybeSingle();
+    const trip = (tripResp.data ?? null) as { slug: string } | null;
     revalidatePath('/invitations');
     revalidatePath('/dashboard');
     return { ok: true, data: { trip_slug: trip?.slug } };
@@ -105,11 +113,12 @@ export async function respondInvitationAction(input: unknown): Promise<ActionRes
 export async function cancelInvitationAction(invitationId: string): Promise<ActionResult> {
   const session = await requireSession();
   const supabase = await getSupabaseServerClient();
-  const { data: inv } = await supabase
+  const invResp = await supabase
     .from('trip_invitations')
     .select('trip_id')
     .eq('id', invitationId)
     .maybeSingle();
+  const inv = (invResp.data ?? null) as { trip_id: string } | null;
   if (!inv) return { ok: false, error: 'not_found' };
 
   try {

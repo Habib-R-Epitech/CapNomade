@@ -30,7 +30,7 @@ export async function createTripAction(input: unknown): Promise<ActionResult<{ s
   const baseSlug = slugify(data.title) || 'voyage';
   const slug = await uniqueSlug(supabase, session.userId, baseSlug);
 
-  const { data: trip, error } = await supabase
+  const insertResp = await supabase
     .from('trips')
     .insert({
       owner_id: session.userId,
@@ -47,8 +47,9 @@ export async function createTripAction(input: unknown): Promise<ActionResult<{ s
     })
     .select('slug')
     .single();
+  const trip = (insertResp.data ?? null) as { slug: string } | null;
 
-  if (error || !trip) return { ok: false, error: error?.message ?? 'unknown_error' };
+  if (insertResp.error || !trip) return { ok: false, error: insertResp.error?.message ?? 'unknown_error' };
 
   revalidatePath('/voyages');
   revalidatePath('/dashboard');
@@ -136,15 +137,23 @@ export async function duplicateTripAction(tripId: string): Promise<ActionResult<
   }
   const session = await requireSession();
   const supabase = await getSupabaseServerClient();
-  const { data: original } = await supabase
-    .from('trips')
-    .select('*')
-    .eq('id', tripId)
-    .single();
+  const originalResp = await supabase.from('trips').select('*').eq('id', tripId).single();
+  const original = (originalResp.data ?? null) as
+    | {
+        slug: string;
+        title: string;
+        description: string | null;
+        start_date: string | null;
+        end_date: string | null;
+        primary_countries: string[];
+        base_currency: string;
+        total_budget_cents: number | null;
+      }
+    | null;
   if (!original) return { ok: false, error: 'not_found' };
 
   const newSlug = await uniqueSlug(supabase, session.userId, `${original.slug}-copie`);
-  const { data: dup, error } = await supabase
+  const dupResp = await supabase
     .from('trips')
     .insert({
       owner_id: session.userId,
@@ -161,7 +170,8 @@ export async function duplicateTripAction(tripId: string): Promise<ActionResult<
     })
     .select('slug')
     .single();
-  if (error || !dup) return { ok: false, error: error?.message ?? 'unknown' };
+  const dup = (dupResp.data ?? null) as { slug: string } | null;
+  if (dupResp.error || !dup) return { ok: false, error: dupResp.error?.message ?? 'unknown' };
 
   revalidatePath('/voyages');
   return { ok: true, data: { slug: dup.slug } };
