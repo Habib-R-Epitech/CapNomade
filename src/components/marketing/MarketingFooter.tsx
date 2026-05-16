@@ -1,18 +1,13 @@
 import Link from 'next/link';
-import { Compass } from 'lucide-react';
 import { siteConfig } from '@/config/site';
+import { Logo } from '@/components/brand/Logo';
 
 export function MarketingFooter() {
   return (
     <footer className="border-t bg-muted/30">
       <div className="container grid gap-8 py-12 md:grid-cols-4">
         <div className="space-y-3">
-          <div className="flex items-center gap-2 font-serif text-base font-semibold">
-            <span className="flex size-7 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <Compass className="size-4" />
-            </span>
-            {siteConfig.name}
-          </div>
+          <Logo size={34} withTagline />
           <p className="max-w-xs text-sm text-muted-foreground">
             Le carnet de voyage moderne pour planifier, suivre et raconter vos voyages — à plusieurs.
           </p>

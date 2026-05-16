@@ -1,7 +1,6 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { cache } from 'react';
-import type { Database } from '@/lib/types/database';
 import { publicEnvironment } from '@/lib/env';
 
 /**
@@ -9,11 +8,17 @@ import { publicEnvironment } from '@/lib/env';
  * Use in Server Components, Server Actions, and Route Handlers.
  *
  * Wrapped in `cache()` so a single request reuses the same client.
+ *
+ * Note: we don't pass our hand-written `Database` generic to createClient.
+ * Its structure didn't satisfy supabase-js's internal generic constraints
+ * (Insert/Row inference collapsed to `never`), which broke every query
+ * and every insert. Queries are typed via `asRow` / `asRows` cast helpers
+ * at the call site; row shapes come from `src/lib/types/database.ts`.
  */
 export const getSupabaseServerClient = cache(async () => {
   const cookieStore = await cookies();
 
-  return createServerClient<Database>(
+  return createServerClient(
     publicEnvironment.NEXT_PUBLIC_SUPABASE_URL,
     publicEnvironment.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     {

@@ -1,7 +1,7 @@
 # CapNomade — État d'avancement
 
 > Ce fichier est mis à jour à chaque push.
-> Dernière mise à jour : **2026-05-16** — simplification `TableShape` pour débloquer `.insert()`.
+> Dernière mise à jour : **2026-05-16** — drop du générique `<Database>` (typage via asRow/asRows uniquement).
 
 ---
 
@@ -35,6 +35,20 @@
 
 ## Journal des fixes / patchs
 
+- **2026-05-16 · Drop `<Database>` + logo brand (commit n°10)** — 2 livraisons :
+  1. **Build fix nucléaire** : suppression du générique `<Database>` dans les 4
+     `createClient` calls (server/browser/admin/middleware). Aucune variation de mon
+     `Database` type fait-main ne satisfaisait les contraintes internes de supabase-js
+     (`.insert(...)` collapsait à `never[]`). Sans le générique, les queries renvoient
+     `any` côté Supabase et les casts `asRow<T>` / `asRows<T>` font le typage explicite
+     au call site. Defense-in-depth via Zod schemas + NOT NULL constraints + RLS reste
+     en place.
+  2. **Logo** : nouveau composant `src/components/brand/Logo.tsx` (`LogoMark` /
+     `LogoWordmark` / `Logo`) en SVG, fidèle à la maquette (cercle + globe stylisé
+     teal + montagnes + trajet d'avion pointillé + pin coral, wordmark "Cap" navy +
+     "Nomade" teal). Utilisé dans header marketing, sidebar dashboard, footer. Favicon
+     dynamique via `app/icon.tsx` (Edge runtime + ImageResponse). Pour la version
+     PNG exacte : drop le fichier sur `public/logo.png` et swap le SVG via `next/image`.
 - **2026-05-16 · Simplifier TableShape (commit n°9)** —
   `.insert({...})` collapsait à `never[]` parce que mon `TableShape<R, K>` avec
   `Insert: Partial<R> & Pick<R, K>` ne satisfaisait pas les contraintes

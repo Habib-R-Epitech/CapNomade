@@ -17,7 +17,7 @@ export async function pushNotification(input: {
     title: input.title,
     body: input.body ?? null,
     link: input.link ?? null,
-    payload: (input.payload ?? {}) as never,
+    payload: input.payload ?? {},
   });
 }
 

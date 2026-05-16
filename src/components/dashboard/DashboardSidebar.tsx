@@ -4,7 +4,6 @@ import * as React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  Compass,
   Home,
   MapPinned,
   Plane,
@@ -14,6 +13,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Logo } from '@/components/brand/Logo';
 
 const ITEMS = [
   { href: '/dashboard', label: 'Accueil', icon: Home },
@@ -29,11 +29,8 @@ export function DashboardSidebar({ unreadInvitations = 0 }: { unreadInvitations?
 
   return (
     <aside className="hidden w-64 shrink-0 border-r bg-card/40 lg:flex lg:flex-col">
-      <Link href="/dashboard" className="flex items-center gap-2 border-b px-6 py-5 font-serif text-lg font-semibold">
-        <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-          <Compass className="size-4" />
-        </span>
-        CapNomade
+      <Link href="/dashboard" className="flex items-center border-b px-6 py-5" aria-label="CapNomade — Accueil">
+        <Logo size={34} />
       </Link>
 
       <nav className="flex-1 space-y-0.5 p-3" aria-label="Navigation principale">

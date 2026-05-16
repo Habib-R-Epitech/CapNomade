@@ -1,5 +1,4 @@
 import { createClient } from '@supabase/supabase-js';
-import type { Database } from '@/lib/types/database';
 import { serverEnv } from '@/lib/env';
 
 /**
@@ -9,7 +8,7 @@ import { serverEnv } from '@/lib/env';
  *
  * Never import this module from a Client Component.
  */
-let cached: ReturnType<typeof createClient<Database>> | null = null;
+let cached: ReturnType<typeof createClient> | null = null;
 
 export function getSupabaseAdminClient() {
   if (typeof window !== 'undefined') {
@@ -20,7 +19,7 @@ export function getSupabaseAdminClient() {
     throw new Error('SUPABASE_SERVICE_ROLE_KEY is not configured');
   }
   if (!cached) {
-    cached = createClient<Database>(
+    cached = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       env.SUPABASE_SERVICE_ROLE_KEY,
       { auth: { persistSession: false, autoRefreshToken: false } },

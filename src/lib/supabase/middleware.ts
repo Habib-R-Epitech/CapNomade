@@ -1,6 +1,5 @@
 import { createServerClient } from '@supabase/ssr';
 import { type NextRequest, NextResponse } from 'next/server';
-import type { Database } from '@/lib/types/database';
 
 /**
  * Edge-runtime helper used by the Next.js middleware to refresh the Supabase
@@ -10,7 +9,7 @@ import type { Database } from '@/lib/types/database';
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request: { headers: request.headers } });
 
-  const supabase = createServerClient<Database>(
+  const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
