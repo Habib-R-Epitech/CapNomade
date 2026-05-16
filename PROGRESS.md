@@ -1,7 +1,7 @@
 # CapNomade — État d'avancement
 
 > Ce fichier est mis à jour à chaque push.
-> Dernière mise à jour : **2026-05-16** — fix lookup `TYPE_TO_FIELD` (noUncheckedIndexedAccess).
+> Dernière mise à jour : **2026-05-16** — typage explicite des callbacks `setAll` Supabase.
 
 ---
 
@@ -35,6 +35,12 @@
 
 ## Journal des fixes / patchs
 
+- **2026-05-16 · Type setAll cookies (commit n°12)** — conséquence du drop de
+  `<Database>` au commit n°10 : sans le générique, les callbacks `setAll`/`getAll`
+  passés à `createServerClient` perdent leur inférence, et `cookiesToSet` est
+  `any` implicite (rejeté par strict mode). Type alias `CookieToSet =
+  { name; value; options: CookieOptions }` ajouté dans `middleware.ts` et
+  `server.ts` (preventive sur le 2ᵉ pour éviter le prochain build à vide).
 - **2026-05-16 · switch type-safe dans tripStats (commit n°11)** — vraie erreur
   TS (pas Supabase) : avec `noUncheckedIndexedAccess: true`, `TYPE_TO_FIELD[exp.type]`
   retournait `keyof TripStats['totals'] | undefined`, et `(totals as Record<...>)[field]`

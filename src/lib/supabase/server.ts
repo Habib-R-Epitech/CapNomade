@@ -3,6 +3,8 @@ import { cookies } from 'next/headers';
 import { cache } from 'react';
 import { publicEnvironment } from '@/lib/env';
 
+type CookieToSet = { name: string; value: string; options: CookieOptions };
+
 /**
  * Server-side Supabase client bound to the Next.js cookies() store.
  * Use in Server Components, Server Actions, and Route Handlers.
@@ -26,10 +28,10 @@ export const getSupabaseServerClient = cache(async () => {
         getAll() {
           return cookieStore.getAll();
         },
-        setAll(cookiesToSet) {
+        setAll(cookiesToSet: CookieToSet[]) {
           try {
             cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options as CookieOptions),
+              cookieStore.set(name, value, options),
             );
           } catch {
             // Called from a Server Component — cookies are read-only here.
