@@ -45,11 +45,16 @@ export async function createTripAction(input: unknown): Promise<ActionResult<{ s
       base_currency: data.base_currency.toUpperCase(),
       total_budget_cents: data.total_budget_cents ?? null,
     })
-    .select('slug')
+    .select('id, slug')
     .single();
-  const trip = (insertResp.data ?? null) as { slug: string } | null;
+  const trip = (insertResp.data ?? null) as { id: string; slug: string } | null;
 
   if (insertResp.error || !trip) return { ok: false, error: insertResp.error?.message ?? 'unknown_error' };
+
+  const memberResp = await supabase
+    .from('trip_members')
+    .insert({ trip_id: trip.id, user_id: session.userId, role: 'owner' });
+  if (memberResp.error) return { ok: false, error: memberResp.error.message };
 
   revalidatePath('/voyages');
   revalidatePath('/dashboard');
@@ -168,10 +173,15 @@ export async function duplicateTripAction(tripId: string): Promise<ActionResult<
       base_currency: original.base_currency,
       total_budget_cents: original.total_budget_cents,
     })
-    .select('slug')
+    .select('id, slug')
     .single();
-  const dup = (dupResp.data ?? null) as { slug: string } | null;
+  const dup = (dupResp.data ?? null) as { id: string; slug: string } | null;
   if (dupResp.error || !dup) return { ok: false, error: dupResp.error?.message ?? 'unknown' };
+
+  const memberResp = await supabase
+    .from('trip_members')
+    .insert({ trip_id: dup.id, user_id: session.userId, role: 'owner' });
+  if (memberResp.error) return { ok: false, error: memberResp.error.message };
 
   revalidatePath('/voyages');
   return { ok: true, data: { slug: dup.slug } };

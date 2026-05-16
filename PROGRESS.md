@@ -1,7 +1,7 @@
 # CapNomade — État d'avancement
 
 > Ce fichier est mis à jour à chaque push.
-> Dernière mise à jour : **2026-05-16** — fix bouton "Se déconnecter" cassé par Radix `asChild`.
+> Dernière mise à jour : **2026-05-16** — fix RLS trips (trigger AFTER INSERT supprimé, insert trip_members côté app).
 
 ---
 
@@ -35,6 +35,26 @@
 
 ## Journal des fixes / patchs
 
+- **2026-05-16 · Fix RLS trips (commit n°23)** — bug majeur diagnostiqué via
+  `/api/debug/auth` : tous les voyants étaient au vert
+  (`auth.uid()` = `session.user_id` = `profile.id`, policy `trips_owner_insert`
+  intacte avec `with_check (owner_id = auth.uid())`) ET POURTANT l'insert
+  échouait avec `42501 — new row violates row-level security policy for table
+  "trips"`. Le probe avec **trigger désactivé** a tranché : l'erreur venait
+  du trigger AFTER INSERT `on_trip_created` qui appelle `handle_new_trip` qui
+  insère dans `trip_members`. Bien que `handle_new_trip` soit
+  `SECURITY DEFINER` owned by postgres (avec `BYPASSRLS=true`), Supabase ne
+  bypasse pas effectivement RLS pour les triggers AFTER INSERT déclenchés via
+  PostgREST, et Postgres remonte l'erreur en mentionnant la table d'origine
+  (`trips`) au lieu de `trip_members`. **Fix** :
+  1. Migration `0005_drop_trip_member_trigger.sql` — DROP TRIGGER
+     on_trip_created + DROP FUNCTION handle_new_trip.
+  2. `createTripAction`, `duplicateTripAction`,
+     `confirmImportedTripAction` : insertent maintenant la ligne
+     `trip_members` (trip_id, user_id, 'owner') juste après la création du
+     trip. La policy `members_owner_insert` (`with check user_id = auth.uid()
+     OR is_trip_owner(trip_id)`) accepte ce self-insert.
+  Plus aucune dépendance à des comportements obscurs de Postgres/Supabase.
 - **2026-05-16 · Fix bouton "Se déconnecter" (commit n°21)** — le pattern
   `<DropdownMenuItem asChild><form><button type="submit">` ne fonctionnait pas :
   Radix appelle `event.preventDefault()` sur `onSelect`, ce qui empêche le

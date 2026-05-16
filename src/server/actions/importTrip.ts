@@ -119,6 +119,11 @@ export async function confirmImportedTripAction(
     return { ok: false, error: tripResp.error?.message ?? 'create_trip_failed' };
   }
 
+  const memberResp = await supabase
+    .from('trip_members')
+    .insert({ trip_id: trip.id, user_id: session.userId, role: 'owner' });
+  if (memberResp.error) return { ok: false, error: memberResp.error.message };
+
   const stopsByName = new Map<string, string>();
   if (data.stops.length > 0) {
     const stopRows = data.stops.map((s, i) => ({
