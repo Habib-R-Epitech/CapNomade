@@ -1,7 +1,6 @@
 'use client';
 
 import * as React from 'react';
-import { useSearchParams } from 'next/navigation';
 import { Button, type ButtonProps } from '@/components/ui/button';
 import { GoogleIcon } from '@/components/ui/google-icon';
 import { getSupabaseBrowserClient } from '@/lib/supabase/browser';
@@ -12,16 +11,23 @@ interface SignInButtonProps extends Omit<ButtonProps, 'onClick' | 'children'> {
   label?: string;
 }
 
-export function SignInButton({ redirectTo, label = 'Se connecter avec Google', ...rest }: SignInButtonProps) {
+export function SignInButton({
+  redirectTo,
+  label = 'Se connecter avec Google',
+  ...rest
+}: SignInButtonProps) {
   const [pending, setPending] = React.useState(false);
-  const params = useSearchParams();
-  const next = redirectTo ?? params.get('redirect') ?? '/dashboard';
 
   async function handleClick() {
     setPending(true);
     const supabase = getSupabaseBrowserClient();
-    const origin =
-      typeof window !== 'undefined' ? window.location.origin : process.env.NEXT_PUBLIC_APP_URL!;
+    const origin = window.location.origin;
+    // Read the optional `?redirect=` param at click time instead of via
+    // `useSearchParams()` so this button can sit on statically-generated
+    // marketing pages without each consumer needing a Suspense boundary.
+    const search = new URLSearchParams(window.location.search);
+    const next = redirectTo ?? search.get('redirect') ?? '/dashboard';
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {

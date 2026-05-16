@@ -1,7 +1,7 @@
 # CapNomade — État d'avancement
 
 > Ce fichier est mis à jour à chaque push.
-> Dernière mise à jour : **2026-05-16** — env vars build-safe (defaults + Proxy lazy).
+> Dernière mise à jour : **2026-05-16** — retrait de `useSearchParams` dans `SignInButton`.
 
 ---
 
@@ -35,6 +35,13 @@
 
 ## Journal des fixes / patchs
 
+- **2026-05-16 · SignInButton sans useSearchParams (commit n°15)** —
+  Static generation de `/fonctionnalites` (et autres pages publiques) plantait :
+  `SignInButton` appelait `useSearchParams()`, ce qui force chaque consommateur
+  à être wrappé dans `<Suspense>`. Fix : la lecture du `?redirect=` est faite
+  via `new URLSearchParams(window.location.search)` au moment du clic, plus
+  via le hook. Plus de hook = plus de contrainte Suspense, les pages publiques
+  restent pré-rendues statiquement.
 - **2026-05-16 · env build-safe (commit n°14)** — "Collecting page data" plantait
   parce que `lib/env.ts` parsait Zod à l'import et Vercel n'avait pas encore
   `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` / `NEXT_PUBLIC_APP_URL`.
