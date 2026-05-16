@@ -1,7 +1,7 @@
 # CapNomade — État d'avancement
 
 > Ce fichier est mis à jour à chaque push.
-> Dernière mise à jour : **2026-05-16** — drop du générique `<Database>` (typage via asRow/asRows uniquement).
+> Dernière mise à jour : **2026-05-16** — fix lookup `TYPE_TO_FIELD` (noUncheckedIndexedAccess).
 
 ---
 
@@ -35,6 +35,12 @@
 
 ## Journal des fixes / patchs
 
+- **2026-05-16 · switch type-safe dans tripStats (commit n°11)** — vraie erreur
+  TS (pas Supabase) : avec `noUncheckedIndexedAccess: true`, `TYPE_TO_FIELD[exp.type]`
+  retournait `keyof TripStats['totals'] | undefined`, et `(totals as Record<...>)[field]`
+  retournait `number | undefined` qu'on ne pouvait pas `+=`. Remplacement du lookup
+  par un `switch` exhaustif sur `exp.type` — plus lisible, totalement type-safe,
+  pas besoin du cast Record.
 - **2026-05-16 · Drop `<Database>` + logo brand (commit n°10)** — 2 livraisons :
   1. **Build fix nucléaire** : suppression du générique `<Database>` dans les 4
      `createClient` calls (server/browser/admin/middleware). Aucune variation de mon

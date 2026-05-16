@@ -53,14 +53,6 @@ interface DayCountRow {
   id: string;
 }
 
-const TYPE_TO_FIELD: Record<ExpenseType, keyof TripStats['totals']> = {
-  accommodation: 'accommodation_cents',
-  transport: 'plane_cents', // refined below using transport_segments
-  activity: 'activities_cents',
-  food: 'food_cents',
-  other: 'other_cents',
-};
-
 export async function loadTripStats(tripId: string): Promise<TripStats> {
   const supabase = await getSupabaseServerClient();
 
@@ -103,16 +95,34 @@ export async function loadTripStats(tripId: string): Promise<TripStats> {
   for (const exp of expenses) {
     const cents = Number(exp.amount_base_cents ?? exp.amount_cents ?? 0);
     totals.overall_cents += cents;
-    if (exp.type === 'transport') {
-      const sub = (exp.subtype ?? '').toLowerCase();
-      if (sub.includes('voiture') || sub.includes('car') || sub.includes('taxi') || sub.includes('train') || sub.includes('bus')) {
-        totals.car_cents += cents;
-      } else {
-        totals.plane_cents += cents;
+    switch (exp.type) {
+      case 'transport': {
+        const sub = (exp.subtype ?? '').toLowerCase();
+        if (
+          sub.includes('voiture') ||
+          sub.includes('car') ||
+          sub.includes('taxi') ||
+          sub.includes('train') ||
+          sub.includes('bus')
+        ) {
+          totals.car_cents += cents;
+        } else {
+          totals.plane_cents += cents;
+        }
+        break;
       }
-    } else {
-      const field = TYPE_TO_FIELD[exp.type];
-      (totals as Record<string, number>)[field] += cents;
+      case 'accommodation':
+        totals.accommodation_cents += cents;
+        break;
+      case 'activity':
+        totals.activities_cents += cents;
+        break;
+      case 'food':
+        totals.food_cents += cents;
+        break;
+      case 'other':
+        totals.other_cents += cents;
+        break;
     }
     if (exp.payment_status === 'unpaid') totals.pending_cents += cents;
   }
