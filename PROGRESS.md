@@ -1,7 +1,7 @@
 # CapNomade — État d'avancement
 
 > Ce fichier est mis à jour à chaque push.
-> Dernière mise à jour : **2026-05-16** — mockup HTML interactif (toutes les pages navigables).
+> Dernière mise à jour : **2026-05-16** — Import de voyages passés (Excel/CSV) sur `/voyages`.
 
 ---
 
@@ -35,6 +35,32 @@
 
 ## Journal des fixes / patchs
 
+- **2026-05-16 · Import voyages passés (commit n°18)** — nouvelle feature majeure
+  sur `/voyages` : bouton "Importer un voyage passé" ouvre un modal large qui
+  accepte `.xlsx`/`.xls`/`.csv` (5 Mo max). L'analyse côté serveur :
+  1. **Extracteur** `src/lib/imports/pastTripExtractor.ts` — réutilise
+     `excelWizard.ts` pour la détection auto de l'en-tête de tableau de dépenses
+     (Libellé/Type/Montant/Devise/Date/Ville, n'importe où dans la feuille), parse
+     toutes les feuilles d'un classeur, fallback CSV avec détection automatique
+     du délimiteur (`,`/`;`/`\t`).
+  2. **Synthèse intelligente** : titre dérivé du nom de fichier, dates start/end
+     calculées comme min/max des dates de dépenses, devise dominante détectée,
+     budget total = somme des dépenses, étapes uniques extraites des villes,
+     transports classifiés (plane/train/bus/ferry/car) via heuristique sur le
+     libellé (regex sur "vol", "TGV", "Flixbus"…), origine/destination parsées
+     du libellé via pattern "X → Y" / "X to Y".
+  3. **Server actions** `src/server/actions/importTrip.ts` :
+     `analyzePastTripAction(FormData)` → renvoie `ExtractedTripData` ;
+     `confirmImportedTripAction(input)` → insère trip (status='completed') +
+     trip_stops + transport_segments + expenses dans la même transaction (avec
+     map name→id pour lier les dépenses aux stops).
+  4. **Modal de validation** `ImportPastTripDialog.tsx` — Dialog max-w-3xl
+     scrollable, 2 phases (upload → validate). Phase 2 : champs méta éditables
+     (titre/dates/devise/pays ISO2), liste de stops/transports/dépenses tous
+     cochables individuellement, tableau de dépenses scrollable avec sticky
+     header. Boutons "Tout cocher / décocher" pour les dépenses.
+  5. À la confirmation : crée le voyage, redirige vers `/voyages/[slug]`,
+     revalide `/voyages` et `/dashboard`.
 - **2026-05-16 · mockup HTML navigable (commit n°17)** — `public/mockup.html` :
   un seul fichier HTML autonome avec routeur hash-based, Tailwind via CDN,
   fonts Inter+Fraunces, logo SVG fidèle à la maquette. **13 routes

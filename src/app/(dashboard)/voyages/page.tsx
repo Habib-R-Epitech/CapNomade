@@ -7,6 +7,7 @@ import { asRows } from '@/lib/supabase/helpers';
 import { Button } from '@/components/ui/button';
 import { TripCard, type TripCardData } from '@/components/dashboard/TripCard';
 import { EmptyState } from '@/components/ui/empty-state';
+import { ImportPastTripButton } from '@/components/voyages/ImportPastTripButton';
 
 export const metadata: Metadata = { title: 'Mes voyages', robots: { index: false, follow: false } };
 
@@ -31,11 +32,14 @@ export default async function TripsPage() {
           <p className="text-sm text-muted-foreground">Carnet</p>
           <h1 className="font-serif text-3xl font-semibold md:text-4xl">Mes voyages</h1>
         </div>
-        <Button asChild>
-          <Link href="/voyages/nouveau">
-            <Plus className="size-4" /> Nouveau voyage
-          </Link>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <ImportPastTripButton />
+          <Button asChild>
+            <Link href="/voyages/nouveau">
+              <Plus className="size-4" /> Nouveau voyage
+            </Link>
+          </Button>
+        </div>
       </header>
 
       {trips.length === 0 ? (
