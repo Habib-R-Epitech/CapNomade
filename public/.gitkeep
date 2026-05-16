@@ -1,0 +1,3 @@
+# This directory is reserved for static assets served at the root of the site:
+# logo.png, og-image.png, custom favicons, robots files, etc.
+# Vercel requires this directory to exist even when empty.

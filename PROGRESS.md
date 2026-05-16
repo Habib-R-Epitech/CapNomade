@@ -1,7 +1,7 @@
 # CapNomade — État d'avancement
 
 > Ce fichier est mis à jour à chaque push.
-> Dernière mise à jour : **2026-05-16** — retrait de `useSearchParams` dans `SignInButton`.
+> Dernière mise à jour : **2026-05-16** — 🎉 build Next.js OK ; création `public/` + vercel.json.
 
 ---
 
@@ -35,6 +35,17 @@
 
 ## Journal des fixes / patchs
 
+- **2026-05-16 · `public/` + vercel.json (commit n°16)** — **build Next.js 100% OK**
+  (compile, lint, types, page data collection, 16/16 static pages, traces) mais
+  Vercel échouait en post-build avec "No Output Directory named 'public' found".
+  Vercel exige la présence d'un dossier `public/` même vide (pour les assets
+  statiques). Fix : `public/.gitkeep` + `vercel.json` explicite (framework: nextjs,
+  region cdg1 pour Paris). Le dossier est aussi prêt à accueillir le `logo.png`
+  exact pour remplacer le SVG inline.
+  **Routes générées** : 26 routes au total — 10 statiques (`/`, `/fonctionnalites`,
+  `/pourquoi-quitter-excel`, `/confidentialite`, `/conditions`, `/mot-de-passe-oublie`,
+  `/reinitialisation`, `/sitemap.xml`, `/robots.txt`, `/_not-found`), 16 dynamiques
+  (dashboard, voyages, auth, api, server actions). First Load JS shared = 102 kB.
 - **2026-05-16 · SignInButton sans useSearchParams (commit n°15)** —
   Static generation de `/fonctionnalites` (et autres pages publiques) plantait :
   `SignInButton` appelait `useSearchParams()`, ce qui force chaque consommateur
