@@ -41,7 +41,16 @@ function resolveStyle(theme: 'light' | 'dark'): string | maplibregl.StyleSpecifi
   return url.replace('{key}', encodeURIComponent(key));
 }
 
-export function WorldMap({ points }: { points: MapTripPoint[] }) {
+const COUNTRIES_GEOJSON_URL =
+  'https://cdn.jsdelivr.net/gh/martynafford/natural-earth-geojson@master/110m/cultural/ne_110m_admin_0_countries.json';
+
+export function WorldMap({
+  points,
+  visitedCountries = [],
+}: {
+  points: MapTripPoint[];
+  visitedCountries?: string[];
+}) {
   const containerRef = React.useRef<HTMLDivElement | null>(null);
   const mapRef = React.useRef<MlMap | null>(null);
   const router = useRouter();
@@ -54,12 +63,54 @@ export function WorldMap({ points }: { points: MapTripPoint[] }) {
       style: resolveStyle((resolvedTheme as 'light' | 'dark') ?? 'light'),
       center: [10, 25],
       zoom: 1.4,
-      // default `attributionControl` is enabled with sensible defaults in MapLibre 4.x
     });
     mapRef.current = map;
     map.addControl(new maplibregl.NavigationControl({ visualizePitch: false }), 'top-right');
 
-    map.on('load', () => {
+    map.on('load', async () => {
+      // Visited countries fill layer
+      if (visitedCountries.length > 0) {
+        try {
+          const resp = await fetch(COUNTRIES_GEOJSON_URL);
+          if (resp.ok) {
+            const geo = await resp.json();
+            map.addSource('countries', { type: 'geojson', data: geo });
+            const codesUpper = visitedCountries.map((c) => c.toUpperCase());
+            map.addLayer({
+              id: 'visited-countries-fill',
+              type: 'fill',
+              source: 'countries',
+              filter: [
+                'any',
+                ['match', ['get', 'ISO_A2'], codesUpper, true, false],
+                ['match', ['get', 'ISO_A2_EH'], codesUpper, true, false],
+              ],
+              paint: {
+                'fill-color': '#0d9488',
+                'fill-opacity': 0.35,
+              },
+            });
+            map.addLayer({
+              id: 'visited-countries-outline',
+              type: 'line',
+              source: 'countries',
+              filter: [
+                'any',
+                ['match', ['get', 'ISO_A2'], codesUpper, true, false],
+                ['match', ['get', 'ISO_A2_EH'], codesUpper, true, false],
+              ],
+              paint: {
+                'line-color': '#0d9488',
+                'line-width': 1.2,
+                'line-opacity': 0.7,
+              },
+            });
+          }
+        } catch {
+          // Network error: silently skip the country highlight, keep dots working
+        }
+      }
+
       if (!points.length) return;
       const features = points.map((p) => ({
         type: 'Feature' as const,
@@ -137,7 +188,7 @@ export function WorldMap({ points }: { points: MapTripPoint[] }) {
       mapRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [resolvedTheme]);
+  }, [resolvedTheme, visitedCountries.length, points.length]);
 
   return <div ref={containerRef} className="h-[420px] w-full rounded-xl border" aria-label="Carte des voyages" />;
 }

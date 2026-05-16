@@ -60,6 +60,7 @@ export default async function DashboardHome() {
     invitesCountResp,
     stats,
     pointStopsResp,
+    allTripsResp,
   ] = await Promise.all([
     supabase
       .from('trips')
@@ -94,6 +95,11 @@ export default async function DashboardHome() {
       .eq('trips.trip_members.user_id', session.userId)
       .not('location', 'is', null)
       .limit(500),
+    supabase
+      .from('trips')
+      .select('primary_countries, status, trip_members!inner(user_id)')
+      .eq('trip_members.user_id', session.userId)
+      .limit(500),
   ]);
 
   const nextTrip = asRow<NextTripRow>(nextTripResp);
@@ -101,6 +107,14 @@ export default async function DashboardHome() {
   const wishes = asRows<WishRow>(wishesResp);
   const pendingInvites = invitesCountResp.count ?? 0;
   const pointStops = asRows<PointStopRow>(pointStopsResp);
+  const allTripsForCountries = asRows<{ primary_countries: string[] | null; status: string }>(allTripsResp);
+  const visitedCountries = Array.from(
+    new Set(
+      allTripsForCountries
+        .filter((t) => t.status === 'completed' || t.status === 'archived')
+        .flatMap((t) => (t.primary_countries ?? []).map((c) => c.toUpperCase())),
+    ),
+  );
 
   const days_until = nextTrip?.start_date
     ? Math.max(
@@ -163,12 +177,11 @@ export default async function DashboardHome() {
             <Link href="/voyages">Tout voir</Link>
           </Button>
         </div>
-        {points.length > 0 ? (
-          <WorldMap points={points} />
-        ) : (
-          <div className="rounded-xl border bg-card p-10 text-center text-sm text-muted-foreground">
-            Vos voyages apparaîtront ici dès que vous aurez ajouté des étapes géolocalisées.
-          </div>
+        <WorldMap points={points} visitedCountries={visitedCountries} />
+        {points.length === 0 && visitedCountries.length === 0 && (
+          <p className="text-center text-xs text-muted-foreground">
+            Vos voyages apparaîtront ici dès que vous en ajouterez un avec un ou plusieurs pays.
+          </p>
         )}
       </section>
 

@@ -16,6 +16,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { CountryMultiSelect } from '@/components/ui/country-multiselect';
 import { createTripAction, updateTripAction } from '@/server/actions/trips';
 
 export interface ExistingTrip {
@@ -61,7 +62,7 @@ export function AddPastTripDialog({ open, onOpenChange, existing }: Props) {
   const [approxDuration, setApproxDuration] = React.useState<number>(7);
 
   // Optional fields
-  const [countries, setCountries] = React.useState(existing?.primary_countries?.join(', ') ?? '');
+  const [countries, setCountries] = React.useState<string[]>(existing?.primary_countries ?? []);
   const [currency, setCurrency] = React.useState(existing?.base_currency ?? 'EUR');
   const [description, setDescription] = React.useState(existing?.description ?? '');
 
@@ -75,7 +76,7 @@ export function AddPastTripDialog({ open, onOpenChange, existing }: Props) {
       setApproxMonth(new Date().getUTCMonth() + 1);
       setApproxYear(CURRENT_YEAR);
       setApproxDuration(7);
-      setCountries(existing?.primary_countries?.join(', ') ?? '');
+      setCountries(existing?.primary_countries ?? []);
       setCurrency(existing?.base_currency ?? 'EUR');
       setDescription(existing?.description ?? '');
       setPending(false);
@@ -106,10 +107,7 @@ export function AddPastTripDialog({ open, onOpenChange, existing }: Props) {
       }
     }
 
-    const countryCodes = countries
-      .split(',')
-      .map((c) => c.trim().toUpperCase())
-      .filter((c) => /^[A-Z]{2}$/.test(c));
+    const countryCodes = countries.map((c) => c.toUpperCase()).filter((c) => /^[A-Z]{2}$/.test(c));
 
     const approxNote =
       dateMode === 'approx'
@@ -283,13 +281,12 @@ export function AddPastTripDialog({ open, onOpenChange, existing }: Props) {
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="past-countries">Pays (optionnel)</Label>
-              <Input
+              <CountryMultiSelect
                 id="past-countries"
-                placeholder="ID, FR"
                 value={countries}
-                onChange={(e) => setCountries(e.target.value)}
+                onChange={setCountries}
+                placeholder="Sélectionnez un ou plusieurs pays…"
               />
-              <p className="text-xs text-muted-foreground">Codes ISO à 2 lettres, séparés par virgule.</p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="past-currency">Devise principale</Label>
