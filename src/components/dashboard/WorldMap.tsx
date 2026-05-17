@@ -6,6 +6,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { useTheme } from 'next-themes';
 import { useRouter } from 'next/navigation';
 import { publicEnvironment } from '@/lib/env';
+import { SVGWorldMap } from './SVGWorldMap';
 
 export interface MapTripPoint {
   trip_id: string;
@@ -41,6 +42,17 @@ function resolveStyle(theme: 'light' | 'dark'): string | maplibregl.StyleSpecifi
   return url.replace('{key}', encodeURIComponent(key));
 }
 
+function hasWebGL(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('webgl2') || canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+    return !!ctx;
+  } catch {
+    return false;
+  }
+}
+
 const COUNTRIES_GEOJSON_URL =
   'https://cdn.jsdelivr.net/gh/martynafford/natural-earth-geojson@master/110m/cultural/ne_110m_admin_0_countries.json';
 
@@ -59,6 +71,11 @@ export function WorldMap({
 
   React.useEffect(() => {
     if (!containerRef.current) return;
+    // Pre-flight WebGL check: avoids loading MapLibre at all when we know it'll fail.
+    if (!hasWebGL()) {
+      setMapError('WebGL unavailable');
+      return;
+    }
     let map: MlMap;
     try {
       map = new MlMap({
@@ -202,22 +219,10 @@ export function WorldMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resolvedTheme, visitedCountries.length, points.length]);
 
+  // WebGL/MapLibre cassé sur cet appareil → on bascule sur la version SVG.
+  // Aucune dépendance WebGL ni canvas, marche partout.
   if (mapError) {
-    return (
-      <div className="flex h-[420px] w-full flex-col items-center justify-center gap-2 rounded-xl border bg-muted/30 px-6 text-center">
-        <p className="text-sm font-medium">Carte indisponible sur cet appareil</p>
-        <p className="max-w-md text-xs text-muted-foreground">
-          Votre navigateur n’a pas pu initialiser WebGL. Essayez d’activer l’accélération matérielle
-          dans les paramètres, de désactiver les extensions qui bloquent le GPU, ou d’utiliser un
-          autre navigateur (Chrome, Firefox, Safari).
-        </p>
-        {visitedCountries.length > 0 && (
-          <p className="mt-2 text-xs text-muted-foreground">
-            Pays visités : {visitedCountries.join(', ')}
-          </p>
-        )}
-      </div>
-    );
+    return <SVGWorldMap points={points} visitedCountries={visitedCountries} />;
   }
   return <div ref={containerRef} className="h-[420px] w-full rounded-xl border" aria-label="Carte des voyages" />;
 }
