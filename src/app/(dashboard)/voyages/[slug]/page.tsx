@@ -39,6 +39,7 @@ import { TripActions } from '@/components/trip/TripActions';
 import { CompleteTripDialog } from '@/components/trip/CompleteTripDialog';
 import { EditTripButton } from '@/components/voyages/EditTripButton';
 import { TripCitiesBar } from '@/components/trip/TripCitiesBar';
+import { TripCountryMap } from '@/components/trip/TripCountryMap';
 import { ExpensesCRUD } from '@/components/trip/crud/ExpensesCRUD';
 import { TransportsCRUD } from '@/components/trip/crud/TransportsCRUD';
 import { StopsCRUD } from '@/components/trip/crud/StopsCRUD';
@@ -128,6 +129,13 @@ export default async function TripDetailPage({ params }: { params: Promise<{ slu
 
   if (!trip) notFound();
 
+  const cityPins = stops
+    .map((s) => {
+      const coords = extractLngLat((s as unknown as { location?: unknown }).location);
+      return coords ? { id: s.id, name: s.name, lng: coords.lng, lat: coords.lat } : null;
+    })
+    .filter((p): p is { id: string; name: string; lng: number; lat: number } => p !== null);
+
   const canEdit = context.canEdit;
   const isCompletable = canEdit && trip.status !== 'completed' && trip.status !== 'archived';
 
@@ -207,6 +215,14 @@ export default async function TripDetailPage({ params }: { params: Promise<{ slu
           countries={(trip.primary_countries ?? []).map((c: string) => c.toUpperCase())}
           canEdit={canEdit}
         />
+
+        {((trip.primary_countries ?? []).length > 0 || cityPins.length > 0) && (
+          <TripCountryMap
+            countries={(trip.primary_countries ?? []).map((c: string) => c.toUpperCase())}
+            cities={cityPins}
+            height={300}
+          />
+        )}
       </header>
 
       <Tabs defaultValue="planning" className="space-y-4">
@@ -332,20 +348,17 @@ export default async function TripDetailPage({ params }: { params: Promise<{ slu
             canEdit={canEdit}
           />
         </TabsContent>
-        <TabsContent value="carte">
-          <div className="rounded-xl border bg-card p-6">
-            <p className="text-sm text-muted-foreground">
-              Carte interactive du voyage — l&apos;intégration MapLibre côté détail s&apos;appuie sur les
-              étapes, transports et features importés.
-            </p>
-            <p className="mt-2 text-sm">
-              {stops.length} étape{stops.length > 1 ? 's' : ''} ·{' '}
-              {transports.length} segment{transports.length > 1 ? 's' : ''}.
-            </p>
-            <p className="mt-3 text-xs text-muted-foreground">
-              Carte plein écran : bientôt disponible.
-            </p>
-          </div>
+        <TabsContent value="carte" className="space-y-3">
+          <TripCountryMap
+            countries={(trip.primary_countries ?? []).map((c: string) => c.toUpperCase())}
+            cities={cityPins}
+            height={560}
+          />
+          <p className="text-xs text-muted-foreground">
+            {stops.length} étape{stops.length > 1 ? 's' : ''} · {cityPins.length} géolocalisée
+            {cityPins.length > 1 ? 's' : ''} · {transports.length} segment de transport
+            {transports.length > 1 ? 's' : ''}
+          </p>
         </TabsContent>
         <TabsContent value="equipe">
           <TripMembers
@@ -367,6 +380,23 @@ export default async function TripDetailPage({ params }: { params: Promise<{ slu
       </Tabs>
     </div>
   );
+}
+
+function extractLngLat(geo: unknown): { lng: number; lat: number } | null {
+  if (!geo) return null;
+  if (typeof geo === 'object' && geo !== null && 'coordinates' in geo) {
+    const c = (geo as { coordinates: unknown }).coordinates;
+    if (Array.isArray(c) && c.length >= 2) {
+      const lng = Number(c[0]);
+      const lat = Number(c[1]);
+      if (Number.isFinite(lng) && Number.isFinite(lat)) return { lng, lat };
+    }
+  }
+  if (typeof geo === 'string') {
+    const m = /POINT\s*\(\s*(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s*\)/i.exec(geo);
+    if (m) return { lng: Number(m[1]), lat: Number(m[2]) };
+  }
+  return null;
 }
 
 const MEDIA_KINDS = ['youtube', 'drive', 'photo', 'article', 'booking', 'other'] as const;

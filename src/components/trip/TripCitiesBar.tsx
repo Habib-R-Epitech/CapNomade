@@ -26,11 +26,21 @@ export function TripCitiesBar({ tripId, cities, countries, canEdit }: Props) {
   const [adding, setAdding] = React.useState(false);
   const [pending, setPending] = React.useState(false);
 
-  async function handlePick(city: { name: string; context: string }) {
+  async function handlePick(city: {
+    name: string;
+    context: string;
+    lng?: number | null;
+    lat?: number | null;
+  }) {
     const name = city.name.trim();
     if (!name) return;
     setPending(true);
-    const res = await quickAddCityAction({ trip_id: tripId, name });
+    const res = await quickAddCityAction({
+      trip_id: tripId,
+      name,
+      lng: city.lng ?? null,
+      lat: city.lat ?? null,
+    });
     setPending(false);
     if (!res.ok) {
       toast.error('Ajout impossible', { description: res.error });

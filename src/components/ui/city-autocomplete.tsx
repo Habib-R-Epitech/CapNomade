@@ -9,12 +9,14 @@ interface Suggestion {
   name: string; // ex. "Ubud"
   context: string; // ex. "Bali, Indonésie"
   country_code?: string | null;
+  lng?: number | null;
+  lat?: number | null;
 }
 
 interface Props {
   countries: string[]; // ISO2 codes — filter scope. Empty = worldwide.
   placeholder?: string;
-  onPick: (city: { name: string; context: string }) => void;
+  onPick: (city: { name: string; context: string; lng?: number | null; lat?: number | null }) => void;
   onCancel?: () => void;
   autoFocus?: boolean;
   disabled?: boolean;
@@ -74,26 +76,25 @@ export function CityAutocomplete({
             text?: string;
             place_name?: string;
             place_type?: string[];
+            center?: [number, number];
+            geometry?: { coordinates?: [number, number] };
             properties?: { country_code?: string };
           }>;
         } = await r.json();
-        // Keep only city-like results (filter out countries, regions, addresses, POIs…).
-        const cityTypes = new Set([
-          'municipality',
-          'municipal_district',
-          'locality',
-          'place',
-          'joint_municipality',
-          'joint_submunicipality',
-          'neighbourhood',
-        ]);
+        // Blacklist : exclude only what is clearly not a city/locality.
+        const excluded = new Set(['address', 'poi', 'postal_code', 'country']);
         const items: Suggestion[] = (json.features || [])
-          .filter((f) => !f.place_type || f.place_type.some((t) => cityTypes.has(t)))
-          .map((f) => ({
-            name: f.text || f.place_name || '',
-            context: f.place_name || '',
-            country_code: f.properties?.country_code ?? null,
-          }))
+          .filter((f) => !f.place_type || !f.place_type.every((t) => excluded.has(t)))
+          .map((f) => {
+            const coords = f.center ?? f.geometry?.coordinates ?? null;
+            return {
+              name: f.text || f.place_name || '',
+              context: f.place_name || '',
+              country_code: f.properties?.country_code ?? null,
+              lng: coords ? coords[0] : null,
+              lat: coords ? coords[1] : null,
+            };
+          })
           .slice(0, 8);
         cache.set(cacheKey, items);
         setSuggestions(items);
@@ -118,7 +119,7 @@ export function CityAutocomplete({
   }, []);
 
   function pick(s: Suggestion) {
-    onPick({ name: s.name, context: s.context });
+    onPick({ name: s.name, context: s.context, lng: s.lng, lat: s.lat });
     setQuery('');
     setSuggestions([]);
     setOpen(false);

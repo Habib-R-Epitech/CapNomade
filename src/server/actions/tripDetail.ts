@@ -180,15 +180,30 @@ export async function deleteStopAction(id: string): Promise<ActionResult> {
 export async function quickAddCityAction(input: {
   trip_id: string;
   name: string;
+  lng?: number | null;
+  lat?: number | null;
+  country_code?: string | null;
 }): Promise<ActionResult<{ id: string; name: string }>> {
   const name = input?.name?.trim();
   if (!input?.trip_id || !name) return { ok: false, error: 'Validation' };
   const guard = await withEditorAccess(input.trip_id);
   if (guard) return guard as ActionResult<{ id: string; name: string }>;
   const supabase = await getSupabaseServerClient();
+  const payload: Record<string, unknown> = {
+    trip_id: input.trip_id,
+    name: name.slice(0, 120),
+    city: name.slice(0, 120),
+  };
+  if (typeof input.lng === 'number' && typeof input.lat === 'number') {
+    // PostGIS EWKT — accepted by the geography(Point, 4326) column.
+    payload.location = `SRID=4326;POINT(${input.lng} ${input.lat})`;
+  }
+  if (input.country_code && /^[A-Z]{2}$/i.test(input.country_code)) {
+    payload.country_code = input.country_code.toUpperCase();
+  }
   const resp = await supabase
     .from('trip_stops')
-    .insert({ trip_id: input.trip_id, name: name.slice(0, 120), city: name.slice(0, 120) })
+    .insert(payload)
     .select('id, name')
     .single();
   const row = (resp.data ?? null) as { id: string; name: string } | null;
