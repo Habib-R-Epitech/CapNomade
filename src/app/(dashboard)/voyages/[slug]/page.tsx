@@ -204,6 +204,7 @@ export default async function TripDetailPage({ params }: { params: Promise<{ slu
         <TripCitiesBar
           tripId={trip.id}
           cities={stops.map((s) => ({ id: s.id, name: s.name, city: s.city }))}
+          countries={(trip.primary_countries ?? []).map((c: string) => c.toUpperCase())}
           canEdit={canEdit}
         />
       </header>

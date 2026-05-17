@@ -2,10 +2,10 @@
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
-import { MapPin, Plus, X, Loader2 } from 'lucide-react';
+import { MapPin, Plus, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { CityAutocomplete } from '@/components/ui/city-autocomplete';
 import { quickAddCityAction, deleteStopAction } from '@/server/actions/tripDetail';
 
 export interface TripCity {
@@ -17,23 +17,18 @@ export interface TripCity {
 interface Props {
   tripId: string;
   cities: TripCity[];
+  countries: string[];
   canEdit: boolean;
 }
 
-export function TripCitiesBar({ tripId, cities, canEdit }: Props) {
+export function TripCitiesBar({ tripId, cities, countries, canEdit }: Props) {
   const router = useRouter();
   const [adding, setAdding] = React.useState(false);
-  const [value, setValue] = React.useState('');
   const [pending, setPending] = React.useState(false);
 
-  async function submit(e?: React.FormEvent) {
-    e?.preventDefault();
-    const name = value.trim();
-    if (!name) {
-      setAdding(false);
-      setValue('');
-      return;
-    }
+  async function handlePick(city: { name: string; context: string }) {
+    const name = city.name.trim();
+    if (!name) return;
     setPending(true);
     const res = await quickAddCityAction({ trip_id: tripId, name });
     setPending(false);
@@ -41,7 +36,6 @@ export function TripCitiesBar({ tripId, cities, canEdit }: Props) {
       toast.error('Ajout impossible', { description: res.error });
       return;
     }
-    setValue('');
     setAdding(false);
     router.refresh();
   }
@@ -87,28 +81,14 @@ export function TripCitiesBar({ tripId, cities, canEdit }: Props) {
         </Button>
       )}
       {canEdit && adding && (
-        <form onSubmit={submit} className="inline-flex items-center gap-1">
-          <Input
-            autoFocus
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            onBlur={() => {
-              if (!value.trim()) setAdding(false);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Escape') {
-                setValue('');
-                setAdding(false);
-              }
-            }}
-            placeholder="ex. Ubud"
-            className="h-7 w-40 text-sm"
-            disabled={pending}
-          />
-          <Button type="submit" size="sm" className="h-7 px-2 text-xs" disabled={pending}>
-            {pending ? <Loader2 className="size-3 animate-spin" /> : 'OK'}
-          </Button>
-        </form>
+        <CityAutocomplete
+          autoFocus
+          disabled={pending}
+          countries={countries}
+          placeholder={countries.length > 0 ? `Ville dans ${countries.join(', ')}…` : 'Rechercher une ville…'}
+          onPick={handlePick}
+          onCancel={() => setAdding(false)}
+        />
       )}
     </div>
   );
