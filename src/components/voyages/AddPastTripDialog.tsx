@@ -154,7 +154,13 @@ export function AddPastTripDialog({ open, onOpenChange, existing }: Props) {
       dateMode === 'approx'
         ? `(Dates approximatives — ${MONTHS[approxMonth - 1]} ${approxYear}, ${approxDuration} jour${approxDuration > 1 ? 's' : ''})`
         : '';
-    const finalDescription = [description.trim(), approxNote].filter(Boolean).join('\n\n') || null;
+    // Strip any previously-injected '(Dates approximatives — …)' markers so they
+    // don't stack up on every edit.
+    const cleanedDescription = description
+      .replace(/\s*\(Dates approximatives[^)]*\)\s*/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    const finalDescription = [cleanedDescription, approxNote].filter(Boolean).join('\n\n') || null;
 
     if (isEdit && existing) {
       const res = await updateTripAction({

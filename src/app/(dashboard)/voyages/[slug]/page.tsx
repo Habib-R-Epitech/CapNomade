@@ -42,8 +42,6 @@ import { ExpensesCRUD } from '@/components/trip/crud/ExpensesCRUD';
 import { TransportsCRUD } from '@/components/trip/crud/TransportsCRUD';
 import { StopsCRUD } from '@/components/trip/crud/StopsCRUD';
 import { AccommodationsCRUD } from '@/components/trip/crud/AccommodationsCRUD';
-import { ActivitiesCRUD } from '@/components/trip/crud/ActivitiesCRUD';
-import { DaysCRUD } from '@/components/trip/crud/DaysCRUD';
 import { MediaCRUD } from '@/components/trip/crud/MediaCRUD';
 import { formatCurrency, formatDateRange } from '@/lib/utils';
 
@@ -216,7 +214,7 @@ export default async function TripDetailPage({ params }: { params: Promise<{ slu
           <StyledTab value="notation">Notation</StyledTab>
         </TabsList>
 
-        <TabsContent value="planning" className="space-y-6">
+        <TabsContent value="planning">
           <PlanningBoard
             tripId={trip.id}
             days={days.map((d) => ({ id: d.id, date: d.date, title: d.title }))}
@@ -224,48 +222,11 @@ export default async function TripDetailPage({ params }: { params: Promise<{ slu
               id: a.id,
               day_id: a.day_id,
               title: a.title,
+              description: a.description,
               time_slot: (a as unknown as { time_slot?: 'morning' | 'afternoon' | 'day' }).time_slot ?? 'day',
             }))}
             canEdit={canEdit}
           />
-          <section className="space-y-3">
-            <details className="rounded-lg border bg-muted/20">
-              <summary className="cursor-pointer px-4 py-2.5 font-serif text-base font-medium">
-                Gérer les jours
-              </summary>
-              <div className="border-t bg-background p-4">
-                <DaysCRUD
-                  tripId={trip.id}
-                  items={days.map((d) => ({ id: d.id, date: d.date, title: d.title, notes: d.notes }))}
-                  canEdit={canEdit}
-                />
-              </div>
-            </details>
-            <details className="rounded-lg border bg-muted/20">
-              <summary className="cursor-pointer px-4 py-2.5 font-serif text-base font-medium">
-                Détail / édition avancée des activités
-              </summary>
-              <div className="border-t bg-background p-4">
-                <ActivitiesCRUD
-                  tripId={trip.id}
-                  items={activities.map((a) => ({
-                    id: a.id,
-                    title: a.title,
-                    description: a.description,
-                    category: a.category,
-                    starts_at: a.starts_at,
-                    ends_at: a.ends_at,
-                    address: a.address,
-                    url: a.url,
-                    cost_cents: a.cost_cents,
-                    cost_currency: a.cost_currency,
-                  }))}
-                  baseCurrency={trip.base_currency}
-                  canEdit={canEdit}
-                />
-              </div>
-            </details>
-          </section>
         </TabsContent>
         <TabsContent value="depenses" className="space-y-6">
           <TripExpensesSummary
