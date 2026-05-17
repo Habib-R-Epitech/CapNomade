@@ -25,6 +25,7 @@ import {
   ChevronDown,
   ChevronRight,
   X,
+  MapPin,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -42,6 +43,7 @@ import {
   moveActivityAction,
   deleteActivityAction,
   upsertActivityAction,
+  setDayCityAction,
 } from '@/server/actions/tripDetail';
 
 type Slot = 'morning' | 'afternoon' | 'day';
@@ -50,6 +52,12 @@ export interface PlanningDay {
   id: string;
   date: string; // YYYY-MM-DD
   title: string | null;
+  stop_id: string | null;
+}
+
+export interface PlanningCity {
+  id: string;
+  name: string;
 }
 
 export interface PlanningActivity {
@@ -64,6 +72,7 @@ interface Props {
   tripId: string;
   days: PlanningDay[];
   activities: PlanningActivity[];
+  cities: PlanningCity[];
   canEdit: boolean;
 }
 
@@ -73,7 +82,7 @@ const SLOTS: Array<{ key: Slot; label: string; Icon: typeof Sun }> = [
   { key: 'day', label: 'Journée', Icon: CalendarDays },
 ];
 
-export function PlanningBoard({ tripId, days, activities, canEdit }: Props) {
+export function PlanningBoard({ tripId, days, activities, cities, canEdit }: Props) {
   const router = useRouter();
   const [optimistic, setOptimistic] = React.useState(activities);
   const [draggingId, setDraggingId] = React.useState<string | null>(null);
@@ -149,6 +158,7 @@ export function PlanningBoard({ tripId, days, activities, canEdit }: Props) {
               number={i + 1}
               day={day}
               tripId={tripId}
+              cities={cities}
               activities={optimistic.filter((a) => a.day_id === day.id)}
               canEdit={canEdit}
               onEditActivity={setEditing}
@@ -177,6 +187,7 @@ function DayPanel({
   number,
   day,
   tripId,
+  cities,
   activities,
   canEdit,
   onEditActivity,
@@ -184,12 +195,14 @@ function DayPanel({
   number: number;
   day: PlanningDay;
   tripId: string;
+  cities: PlanningCity[];
   activities: PlanningActivity[];
   canEdit: boolean;
   onEditActivity: (a: PlanningActivity) => void;
 }) {
-  const [open, setOpen] = React.useState(true);
+  const [open, setOpen] = React.useState(false);
   const dateLabel = formatDate(day.date);
+  const cityName = cities.find((c) => c.id === day.stop_id)?.name ?? null;
 
   return (
     <section className="overflow-hidden rounded-xl border bg-card">
@@ -198,9 +211,14 @@ function DayPanel({
         onClick={() => setOpen((v) => !v)}
         className="flex w-full items-center justify-between gap-2 border-b bg-muted/30 px-4 py-2.5 text-left transition hover:bg-muted/50"
       >
-        <div className="flex items-baseline gap-3">
+        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
           <span className="font-serif text-lg font-semibold">Jour {number}</span>
           <span className="text-sm text-muted-foreground">{dateLabel}</span>
+          {cityName && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+              <MapPin className="size-3" /> {cityName}
+            </span>
+          )}
           {day.title && <span className="text-sm">· {day.title}</span>}
         </div>
         <div className="flex items-center gap-2 text-muted-foreground">
@@ -212,23 +230,87 @@ function DayPanel({
       </button>
 
       {open && (
-        <div className="grid gap-2 p-3 md:grid-cols-3">
-          {SLOTS.map(({ key, label, Icon }) => (
-            <SlotColumn
-              key={key}
-              day={day}
-              slot={key}
-              label={label}
-              Icon={Icon}
-              activities={activities.filter((a) => a.time_slot === key)}
-              tripId={tripId}
-              canEdit={canEdit}
-              onEditActivity={onEditActivity}
-            />
-          ))}
-        </div>
+        <>
+          {canEdit && (
+            <div className="flex items-center gap-2 border-b bg-background px-4 py-2 text-xs">
+              <span className="text-muted-foreground">Ville&nbsp;:</span>
+              <DayCitySelector day={day} tripId={tripId} cities={cities} />
+            </div>
+          )}
+          <div className="grid gap-2 p-3 md:grid-cols-3">
+            {SLOTS.map(({ key, label, Icon }) => (
+              <SlotColumn
+                key={key}
+                day={day}
+                slot={key}
+                label={label}
+                Icon={Icon}
+                activities={activities.filter((a) => a.time_slot === key)}
+                tripId={tripId}
+                canEdit={canEdit}
+                onEditActivity={onEditActivity}
+              />
+            ))}
+          </div>
+        </>
       )}
     </section>
+  );
+}
+
+function DayCitySelector({
+  day,
+  tripId,
+  cities,
+}: {
+  day: PlanningDay;
+  tripId: string;
+  cities: PlanningCity[];
+}) {
+  const router = useRouter();
+  const [value, setValue] = React.useState(day.stop_id ?? '');
+  const [pending, setPending] = React.useState(false);
+
+  async function onChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    const v = e.target.value;
+    setValue(v);
+    setPending(true);
+    const res = await setDayCityAction({
+      day_id: day.id,
+      trip_id: tripId,
+      stop_id: v || null,
+    });
+    setPending(false);
+    if (!res.ok) {
+      toast.error('Maj impossible', { description: res.error });
+      setValue(day.stop_id ?? '');
+      return;
+    }
+    router.refresh();
+  }
+
+  if (cities.length === 0) {
+    return (
+      <span className="text-muted-foreground/70">
+        Aucune ville. Ajoutez-en une depuis le header du voyage.
+      </span>
+    );
+  }
+
+  return (
+    <select
+      value={value}
+      onChange={onChange}
+      disabled={pending}
+      className="h-7 rounded-md border border-input bg-background px-2 text-xs shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+    >
+      <option value="">— Non assignée —</option>
+      {cities.map((c) => (
+        <option key={c.id} value={c.id}>
+          {c.name}
+        </option>
+      ))}
+    </select>
   );
 }
 

@@ -38,6 +38,7 @@ import { TripReview } from '@/components/trip/TripReview';
 import { TripActions } from '@/components/trip/TripActions';
 import { CompleteTripDialog } from '@/components/trip/CompleteTripDialog';
 import { EditTripButton } from '@/components/voyages/EditTripButton';
+import { TripCitiesBar } from '@/components/trip/TripCitiesBar';
 import { ExpensesCRUD } from '@/components/trip/crud/ExpensesCRUD';
 import { TransportsCRUD } from '@/components/trip/crud/TransportsCRUD';
 import { StopsCRUD } from '@/components/trip/crud/StopsCRUD';
@@ -199,6 +200,12 @@ export default async function TripDetailPage({ params }: { params: Promise<{ slu
           )}
           <TripActions tripId={trip.id} slug={trip.slug} status={trip.status} canEdit={canEdit} isOwner={context.isOwner} />
         </div>
+
+        <TripCitiesBar
+          tripId={trip.id}
+          cities={stops.map((s) => ({ id: s.id, name: s.name, city: s.city }))}
+          canEdit={canEdit}
+        />
       </header>
 
       <Tabs defaultValue="planning" className="space-y-4">
@@ -217,7 +224,12 @@ export default async function TripDetailPage({ params }: { params: Promise<{ slu
         <TabsContent value="planning">
           <PlanningBoard
             tripId={trip.id}
-            days={days.map((d) => ({ id: d.id, date: d.date, title: d.title }))}
+            days={days.map((d) => ({
+              id: d.id,
+              date: d.date,
+              title: d.title,
+              stop_id: (d as unknown as { stop_id?: string | null }).stop_id ?? null,
+            }))}
             activities={activities.map((a) => ({
               id: a.id,
               day_id: a.day_id,
@@ -225,6 +237,7 @@ export default async function TripDetailPage({ params }: { params: Promise<{ slu
               description: a.description,
               time_slot: (a as unknown as { time_slot?: 'morning' | 'afternoon' | 'day' }).time_slot ?? 'day',
             }))}
+            cities={stops.map((s) => ({ id: s.id, name: s.name }))}
             canEdit={canEdit}
           />
         </TabsContent>

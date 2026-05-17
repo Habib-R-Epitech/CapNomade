@@ -173,6 +173,51 @@ export async function deleteStopAction(id: string): Promise<ActionResult> {
   return { ok: true };
 }
 
+/**
+ * Quick-add a city/stop to a trip. Minimal payload : just a name.
+ * Used by the "+ Ajouter une ville" button on the trip detail header.
+ */
+export async function quickAddCityAction(input: {
+  trip_id: string;
+  name: string;
+}): Promise<ActionResult<{ id: string; name: string }>> {
+  const name = input?.name?.trim();
+  if (!input?.trip_id || !name) return { ok: false, error: 'Validation' };
+  const guard = await withEditorAccess(input.trip_id);
+  if (guard) return guard as ActionResult<{ id: string; name: string }>;
+  const supabase = await getSupabaseServerClient();
+  const resp = await supabase
+    .from('trip_stops')
+    .insert({ trip_id: input.trip_id, name: name.slice(0, 120), city: name.slice(0, 120) })
+    .select('id, name')
+    .single();
+  const row = (resp.data ?? null) as { id: string; name: string } | null;
+  if (resp.error || !row) return { ok: false, error: resp.error?.message ?? 'unknown' };
+  await revalidateTripPath(supabase, input.trip_id);
+  return { ok: true, data: row };
+}
+
+/**
+ * Assign a city (trip_stop) to a day, or clear it if stop_id is null.
+ */
+export async function setDayCityAction(input: {
+  day_id: string;
+  trip_id: string;
+  stop_id: string | null;
+}): Promise<ActionResult> {
+  if (!input?.day_id || !input?.trip_id) return { ok: false, error: 'Validation' };
+  const guard = await withEditorAccess(input.trip_id);
+  if (guard) return guard;
+  const supabase = await getSupabaseServerClient();
+  const { error } = await supabase
+    .from('trip_days')
+    .update({ stop_id: input.stop_id })
+    .eq('id', input.day_id);
+  if (error) return { ok: false, error: error.message };
+  await revalidateTripPath(supabase, input.trip_id);
+  return { ok: true };
+}
+
 // --- Accommodations ---------------------------------------------------------
 
 export async function upsertAccommodationAction(input: unknown): Promise<ActionResult<{ id: string }>> {
