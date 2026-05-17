@@ -65,18 +65,36 @@ export function CityAutocomplete({
         const url = new URL(`https://api.maptiler.com/geocoding/${encodeURIComponent(q)}.json`);
         url.searchParams.set('key', key);
         if (countryFilter) url.searchParams.set('country', countryFilter);
-        url.searchParams.set('types', 'municipality,municipal_district,subcity');
-        url.searchParams.set('limit', '8');
+        url.searchParams.set('limit', '10');
         url.searchParams.set('language', 'fr');
         const r = await fetch(url.toString(), { signal: ctrl.signal });
         if (!r.ok) throw new Error('geocode_failed');
-        const json: { features: Array<{ text?: string; place_name?: string; properties?: { country_code?: string } }> } =
-          await r.json();
-        const items: Suggestion[] = (json.features || []).map((f) => ({
-          name: f.text || f.place_name || '',
-          context: f.place_name || '',
-          country_code: f.properties?.country_code ?? null,
-        }));
+        const json: {
+          features: Array<{
+            text?: string;
+            place_name?: string;
+            place_type?: string[];
+            properties?: { country_code?: string };
+          }>;
+        } = await r.json();
+        // Keep only city-like results (filter out countries, regions, addresses, POIs…).
+        const cityTypes = new Set([
+          'municipality',
+          'municipal_district',
+          'locality',
+          'place',
+          'joint_municipality',
+          'joint_submunicipality',
+          'neighbourhood',
+        ]);
+        const items: Suggestion[] = (json.features || [])
+          .filter((f) => !f.place_type || f.place_type.some((t) => cityTypes.has(t)))
+          .map((f) => ({
+            name: f.text || f.place_name || '',
+            context: f.place_name || '',
+            country_code: f.properties?.country_code ?? null,
+          }))
+          .slice(0, 8);
         cache.set(cacheKey, items);
         setSuggestions(items);
         setHighlight(0);
