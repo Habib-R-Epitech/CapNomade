@@ -55,17 +55,29 @@ export function WorldMap({
   const mapRef = React.useRef<MlMap | null>(null);
   const router = useRouter();
   const { resolvedTheme } = useTheme();
+  const [mapError, setMapError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     if (!containerRef.current) return;
-    const map = new MlMap({
-      container: containerRef.current,
-      style: resolveStyle((resolvedTheme as 'light' | 'dark') ?? 'light'),
-      center: [10, 25],
-      zoom: 1.4,
-    });
+    let map: MlMap;
+    try {
+      map = new MlMap({
+        container: containerRef.current,
+        style: resolveStyle((resolvedTheme as 'light' | 'dark') ?? 'light'),
+        center: [10, 25],
+        zoom: 1.4,
+      });
+    } catch (err) {
+      // WebGL not available (hardware accel disabled, old browser, sandboxed iframe…)
+      setMapError(err instanceof Error ? err.message : 'Carte indisponible');
+      return;
+    }
     mapRef.current = map;
     map.addControl(new maplibregl.NavigationControl({ visualizePitch: false }), 'top-right');
+    map.on('error', (e) => {
+      const msg = (e?.error as Error | undefined)?.message;
+      if (msg && /WebGL/i.test(msg)) setMapError(msg);
+    });
 
     map.on('load', async () => {
       // Visited countries fill layer
@@ -190,6 +202,23 @@ export function WorldMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resolvedTheme, visitedCountries.length, points.length]);
 
+  if (mapError) {
+    return (
+      <div className="flex h-[420px] w-full flex-col items-center justify-center gap-2 rounded-xl border bg-muted/30 px-6 text-center">
+        <p className="text-sm font-medium">Carte indisponible sur cet appareil</p>
+        <p className="max-w-md text-xs text-muted-foreground">
+          Votre navigateur n’a pas pu initialiser WebGL. Essayez d’activer l’accélération matérielle
+          dans les paramètres, de désactiver les extensions qui bloquent le GPU, ou d’utiliser un
+          autre navigateur (Chrome, Firefox, Safari).
+        </p>
+        {visitedCountries.length > 0 && (
+          <p className="mt-2 text-xs text-muted-foreground">
+            Pays visités : {visitedCountries.join(', ')}
+          </p>
+        )}
+      </div>
+    );
+  }
   return <div ref={containerRef} className="h-[420px] w-full rounded-xl border" aria-label="Carte des voyages" />;
 }
 
