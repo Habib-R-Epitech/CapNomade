@@ -47,6 +47,9 @@ export async function createTripAction(input: unknown): Promise<ActionResult<{ s
   const trip = (rpcResp.data ?? null) as { id: string; slug: string } | null;
   if (rpcResp.error || !trip) return { ok: false, error: rpcResp.error?.message ?? 'unknown_error' };
 
+  // Auto-create one trip_days row per date in the trip's range.
+  await syncTripDays(supabase, trip.id, data.start_date, data.end_date);
+
   revalidatePath('/voyages');
   revalidatePath('/dashboard');
   return { ok: true, data: { slug: trip.slug } };
@@ -65,6 +68,32 @@ export async function updateTripAction(input: unknown): Promise<ActionResult> {
   }
 
   const supabase = await getSupabaseServerClient();
+
+  // If start_date or end_date change, validate first that the new range
+  // doesn't orphan any planned activities.
+  if ('start_date' in patch || 'end_date' in patch) {
+    const currentResp = await supabase
+      .from('trips')
+      .select('start_date, end_date')
+      .eq('id', id)
+      .single();
+    const current = (currentResp.data ?? null) as
+      | { start_date: string | null; end_date: string | null }
+      | null;
+    const nextStart = 'start_date' in patch ? patch.start_date : current?.start_date ?? null;
+    const nextEnd = 'end_date' in patch ? patch.end_date : current?.end_date ?? null;
+    const sync = await syncTripDays(supabase, id, nextStart, nextEnd);
+    if (!sync.ok) {
+      if (sync.error === 'days_have_activities') {
+        return {
+          ok: false,
+          error: `Impossible de raccourcir le voyage : des activités sont planifiées les ${(sync.blockedDates ?? []).join(', ')}. Supprimez-les d'abord.`,
+        };
+      }
+      return { ok: false, error: sync.error };
+    }
+  }
+
   const updateValues: Record<string, unknown> = { ...patch };
   if (patch.title) {
     const baseSlug = slugify(patch.title);
@@ -171,6 +200,84 @@ export async function duplicateTripAction(tripId: string): Promise<ActionResult<
 }
 
 // --- helpers -----------------------------------------------------------------
+
+/**
+ * Returns each ISO date (YYYY-MM-DD) from start to end inclusive.
+ * Capped at 365 days to avoid runaway loops on bad input.
+ */
+function enumerateDates(start: string, end: string): string[] {
+  const out: string[] = [];
+  const s = new Date(start + 'T00:00:00Z');
+  const e = new Date(end + 'T00:00:00Z');
+  if (Number.isNaN(s.getTime()) || Number.isNaN(e.getTime()) || s > e) return out;
+  for (let d = new Date(s); d <= e && out.length < 365; d.setUTCDate(d.getUTCDate() + 1)) {
+    out.push(d.toISOString().slice(0, 10));
+  }
+  return out;
+}
+
+/**
+ * Sync the trip_days rows so they match the trip's start_date / end_date range.
+ *  - Adds days that are missing.
+ *  - Removes days that fall outside the range, BUT refuses if any of those
+ *    days has activities (the user must delete the activities first).
+ *
+ * Returns { ok: true } on success.
+ * Returns { ok: false, error: 'days_have_activities', blockedDates: [...] } when
+ * the range shrinkage would orphan activities.
+ */
+async function syncTripDays(
+  supabase: Awaited<ReturnType<typeof getSupabaseServerClient>>,
+  tripId: string,
+  startDate: string | null | undefined,
+  endDate: string | null | undefined,
+): Promise<{ ok: true } | { ok: false; error: string; blockedDates?: string[] }> {
+  if (!startDate || !endDate) return { ok: true };
+  const desired = enumerateDates(startDate, endDate);
+  if (desired.length === 0) return { ok: true };
+  const desiredSet = new Set(desired);
+
+  const currentResp = await supabase
+    .from('trip_days')
+    .select('id, date')
+    .eq('trip_id', tripId);
+  const current = (currentResp.data ?? []) as Array<{ id: string; date: string }>;
+  const currentDates = new Set(current.map((d) => d.date));
+
+  const toRemove = current.filter((d) => !desiredSet.has(d.date));
+  if (toRemove.length > 0) {
+    const removeIds = toRemove.map((d) => d.id);
+    const activitiesResp = await supabase
+      .from('activities')
+      .select('day_id')
+      .in('day_id', removeIds);
+    const activities = (activitiesResp.data ?? []) as Array<{ day_id: string }>;
+    const blockedIds = new Set(activities.map((a) => a.day_id));
+    const blockedDates = toRemove
+      .filter((d) => blockedIds.has(d.id))
+      .map((d) => d.date)
+      .sort();
+    if (blockedDates.length > 0) {
+      return { ok: false, error: 'days_have_activities', blockedDates };
+    }
+    const del = await supabase.from('trip_days').delete().in('id', removeIds);
+    if (del.error) return { ok: false, error: del.error.message };
+  }
+
+  const toAdd = desired.filter((d) => !currentDates.has(d));
+  if (toAdd.length > 0) {
+    const ins = await supabase.from('trip_days').insert(
+      toAdd.map((date, i) => ({
+        trip_id: tripId,
+        date,
+        order_index: desired.indexOf(date) >= 0 ? desired.indexOf(date) : i,
+      })),
+    );
+    if (ins.error) return { ok: false, error: ins.error.message };
+  }
+
+  return { ok: true };
+}
 
 async function uniqueSlug(
   supabase: Awaited<ReturnType<typeof getSupabaseServerClient>>,
