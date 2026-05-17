@@ -33,10 +33,14 @@ function geometryToPath(geom: CountryFeature['geometry']): string {
   return rings
     .map((ring) =>
       ring
-        .map(([lng, lat], i) => {
+        .map((coord, i) => {
+          const lng = coord[0];
+          const lat = coord[1];
+          if (typeof lng !== 'number' || typeof lat !== 'number') return '';
           const [x, y] = project(lng, lat);
           return `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`;
         })
+        .filter(Boolean)
         .join('') + 'Z',
     )
     .join('');
