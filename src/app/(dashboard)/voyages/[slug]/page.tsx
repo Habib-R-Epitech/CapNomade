@@ -343,7 +343,7 @@ export default async function TripDetailPage({ params }: { params: Promise<{ slu
             tripId={trip.id}
             items={media.map((m) => ({
               id: m.id,
-              kind: m.kind,
+              kind: normalizeMediaKind(m.kind),
               url: m.url,
               title: m.title,
               description: m.description ?? null,
@@ -386,6 +386,12 @@ export default async function TripDetailPage({ params }: { params: Promise<{ slu
       </Tabs>
     </div>
   );
+}
+
+const MEDIA_KINDS = ['youtube', 'drive', 'photo', 'article', 'booking', 'other'] as const;
+type MediaKind = (typeof MEDIA_KINDS)[number];
+function normalizeMediaKind(raw: string): MediaKind {
+  return (MEDIA_KINDS as readonly string[]).includes(raw) ? (raw as MediaKind) : 'other';
 }
 
 function StyledTab({ value, children }: { value: string; children: React.ReactNode }) {
