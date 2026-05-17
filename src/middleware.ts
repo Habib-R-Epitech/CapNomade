@@ -38,7 +38,7 @@ export async function middleware(request: NextRequest) {
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "img-src 'self' data: blob: https:",
       "font-src 'self' data: https://fonts.gstatic.com",
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.maptiler.com https://*.maptiler.com https://*.tiles.mapbox.com",
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.maptiler.com https://*.maptiler.com https://*.tiles.mapbox.com https://cdn.jsdelivr.net",
       "worker-src 'self' blob:",
       "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com",
       "frame-ancestors 'none'",

@@ -107,14 +107,24 @@ export default async function DashboardHome() {
   const wishes = asRows<WishRow>(wishesResp);
   const pendingInvites = invitesCountResp.count ?? 0;
   const pointStops = asRows<PointStopRow>(pointStopsResp);
-  const allTripsForCountries = asRows<{ primary_countries: string[] | null; status: string }>(allTripsResp);
-  const visitedCountries = Array.from(
-    new Set(
-      allTripsForCountries
-        .filter((t) => t.status === 'completed' || t.status === 'archived')
-        .flatMap((t) => (t.primary_countries ?? []).map((c) => c.toUpperCase())),
-    ),
-  );
+  let visitedCountries: string[] = [];
+  try {
+    const allTripsForCountries = asRows<{ primary_countries: string[] | null; status: string }>(allTripsResp);
+    visitedCountries = Array.from(
+      new Set(
+        allTripsForCountries
+          .filter((t) => t.status === 'completed' || t.status === 'archived')
+          .flatMap((t) =>
+            (Array.isArray(t.primary_countries) ? t.primary_countries : [])
+              .filter((c): c is string => typeof c === 'string')
+              .map((c) => c.toUpperCase()),
+          ),
+      ),
+    );
+  } catch {
+    // Defensive: a bad row shouldn't crash the whole dashboard.
+    visitedCountries = [];
+  }
 
   const days_until = nextTrip?.start_date
     ? Math.max(

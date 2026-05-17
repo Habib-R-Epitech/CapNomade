@@ -22,6 +22,13 @@ export default function GlobalError({
       <p className="max-w-md text-muted-foreground">
         Une erreur inattendue est survenue. Réessayez, ou contactez le support si elle persiste.
       </p>
+      <details className="max-w-2xl rounded-md border bg-muted/30 p-3 text-left text-xs">
+        <summary className="cursor-pointer font-medium">Détails techniques</summary>
+        <pre className="mt-2 whitespace-pre-wrap break-words">
+{error.message || 'Erreur sans message'}
+{error.digest ? `\n\ndigest: ${error.digest}` : ''}
+        </pre>
+      </details>
       <div className="flex gap-3">
         <Button onClick={reset}>Réessayer</Button>
         <Button asChild variant="outline">
