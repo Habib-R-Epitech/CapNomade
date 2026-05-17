@@ -31,7 +31,7 @@ interface MemberRow {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { TripPlanning } from '@/components/trip/TripPlanning';
+import { PlanningBoard } from '@/components/trip/PlanningBoard';
 import { TripExpensesSummary } from '@/components/trip/TripExpensesSummary';
 import { TripMembers } from '@/components/trip/TripMembers';
 import { TripReview } from '@/components/trip/TripReview';
@@ -217,48 +217,54 @@ export default async function TripDetailPage({ params }: { params: Promise<{ slu
         </TabsList>
 
         <TabsContent value="planning" className="space-y-6">
-          <TripPlanning
+          <PlanningBoard
             tripId={trip.id}
-            days={days.map((d) => ({ id: d.id, date: d.date, title: d.title, notes: d.notes }))}
+            days={days.map((d) => ({ id: d.id, date: d.date, title: d.title }))}
             activities={activities.map((a) => ({
               id: a.id,
-              title: a.title,
               day_id: a.day_id,
-              starts_at: a.starts_at,
-              ends_at: a.ends_at,
-              category: a.category,
-              cost_cents: a.cost_cents,
-              cost_currency: a.cost_currency,
+              title: a.title,
+              time_slot: (a as unknown as { time_slot?: 'morning' | 'afternoon' | 'day' }).time_slot ?? 'day',
             }))}
             canEdit={canEdit}
           />
           <section className="space-y-3">
-            <h3 className="font-serif text-lg font-semibold">Jours</h3>
-            <DaysCRUD
-              tripId={trip.id}
-              items={days.map((d) => ({ id: d.id, date: d.date, title: d.title, notes: d.notes }))}
-              canEdit={canEdit}
-            />
-          </section>
-          <section className="space-y-3">
-            <h3 className="font-serif text-lg font-semibold">Activités</h3>
-            <ActivitiesCRUD
-              tripId={trip.id}
-              items={activities.map((a) => ({
-                id: a.id,
-                title: a.title,
-                description: a.description,
-                category: a.category,
-                starts_at: a.starts_at,
-                ends_at: a.ends_at,
-                address: a.address,
-                url: a.url,
-                cost_cents: a.cost_cents,
-                cost_currency: a.cost_currency,
-              }))}
-              baseCurrency={trip.base_currency}
-              canEdit={canEdit}
-            />
+            <details className="rounded-lg border bg-muted/20">
+              <summary className="cursor-pointer px-4 py-2.5 font-serif text-base font-medium">
+                Gérer les jours
+              </summary>
+              <div className="border-t bg-background p-4">
+                <DaysCRUD
+                  tripId={trip.id}
+                  items={days.map((d) => ({ id: d.id, date: d.date, title: d.title, notes: d.notes }))}
+                  canEdit={canEdit}
+                />
+              </div>
+            </details>
+            <details className="rounded-lg border bg-muted/20">
+              <summary className="cursor-pointer px-4 py-2.5 font-serif text-base font-medium">
+                Détail / édition avancée des activités
+              </summary>
+              <div className="border-t bg-background p-4">
+                <ActivitiesCRUD
+                  tripId={trip.id}
+                  items={activities.map((a) => ({
+                    id: a.id,
+                    title: a.title,
+                    description: a.description,
+                    category: a.category,
+                    starts_at: a.starts_at,
+                    ends_at: a.ends_at,
+                    address: a.address,
+                    url: a.url,
+                    cost_cents: a.cost_cents,
+                    cost_currency: a.cost_currency,
+                  }))}
+                  baseCurrency={trip.base_currency}
+                  canEdit={canEdit}
+                />
+              </div>
+            </details>
           </section>
         </TabsContent>
         <TabsContent value="depenses" className="space-y-6">

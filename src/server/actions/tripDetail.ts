@@ -254,6 +254,65 @@ export async function upsertActivityAction(input: unknown): Promise<ActionResult
   return { ok: true, data: { id: row.id } };
 }
 
+/**
+ * Quick-add a todo-style activity inside a day. Defaults to time_slot='day'.
+ * Used by the planning board.
+ */
+export async function quickAddActivityAction(input: {
+  trip_id: string;
+  day_id: string;
+  title: string;
+}): Promise<ActionResult<{ id: string }>> {
+  if (!input?.trip_id || !input?.day_id || !input?.title?.trim()) {
+    return { ok: false, error: 'Validation' };
+  }
+  const guard = await withEditorAccess(input.trip_id);
+  if (guard) return guard as ActionResult<{ id: string }>;
+  const supabase = await getSupabaseServerClient();
+  const resp = await supabase
+    .from('activities')
+    .insert({
+      trip_id: input.trip_id,
+      day_id: input.day_id,
+      title: input.title.trim().slice(0, 200),
+      time_slot: 'day',
+    })
+    .select('id')
+    .single();
+  const row = (resp.data ?? null) as { id: string } | null;
+  if (resp.error || !row) return { ok: false, error: resp.error?.message ?? 'unknown' };
+  await revalidateTripPath(supabase, input.trip_id);
+  return { ok: true, data: { id: row.id } };
+}
+
+/**
+ * Move an activity between slots (Matin / Après-midi / Journée) or between days.
+ * Used by the planning board's drag-and-drop.
+ */
+export async function moveActivityAction(input: {
+  activity_id: string;
+  trip_id: string;
+  day_id: string;
+  time_slot: 'morning' | 'afternoon' | 'day';
+}): Promise<ActionResult> {
+  if (!input?.activity_id || !input?.trip_id || !input?.day_id) {
+    return { ok: false, error: 'Validation' };
+  }
+  if (!['morning', 'afternoon', 'day'].includes(input.time_slot)) {
+    return { ok: false, error: 'Validation' };
+  }
+  const guard = await withEditorAccess(input.trip_id);
+  if (guard) return guard;
+  const supabase = await getSupabaseServerClient();
+  const { error } = await supabase
+    .from('activities')
+    .update({ day_id: input.day_id, time_slot: input.time_slot })
+    .eq('id', input.activity_id);
+  if (error) return { ok: false, error: error.message };
+  await revalidateTripPath(supabase, input.trip_id);
+  return { ok: true };
+}
+
 export async function deleteActivityAction(id: string): Promise<ActionResult> {
   const supabase = await getSupabaseServerClient();
   const resp = await supabase.from('activities').select('trip_id').eq('id', id).single();
