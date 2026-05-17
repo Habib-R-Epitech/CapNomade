@@ -33,13 +33,18 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TripPlanning } from '@/components/trip/TripPlanning';
 import { TripExpensesSummary } from '@/components/trip/TripExpensesSummary';
-import { TripTransports } from '@/components/trip/TripTransports';
 import { TripMembers } from '@/components/trip/TripMembers';
 import { TripReview } from '@/components/trip/TripReview';
-import { TripMedia } from '@/components/trip/TripMedia';
 import { TripActions } from '@/components/trip/TripActions';
 import { CompleteTripDialog } from '@/components/trip/CompleteTripDialog';
 import { EditTripButton } from '@/components/voyages/EditTripButton';
+import { ExpensesCRUD } from '@/components/trip/crud/ExpensesCRUD';
+import { TransportsCRUD } from '@/components/trip/crud/TransportsCRUD';
+import { StopsCRUD } from '@/components/trip/crud/StopsCRUD';
+import { AccommodationsCRUD } from '@/components/trip/crud/AccommodationsCRUD';
+import { ActivitiesCRUD } from '@/components/trip/crud/ActivitiesCRUD';
+import { DaysCRUD } from '@/components/trip/crud/DaysCRUD';
+import { MediaCRUD } from '@/components/trip/crud/MediaCRUD';
 import { formatCurrency, formatDateRange } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
@@ -66,6 +71,7 @@ export default async function TripDetailPage({ params }: { params: Promise<{ slu
     membersResp,
     reviewResp,
     mediaResp,
+    expensesResp,
     stats,
   ] = await Promise.all([
     supabase.from('trips').select('*').eq('id', context.trip.id).single(),
@@ -93,6 +99,11 @@ export default async function TripDetailPage({ params }: { params: Promise<{ slu
       .eq('author_id', session.userId)
       .maybeSingle(),
     supabase.from('media_links').select('*').eq('trip_id', context.trip.id),
+    supabase
+      .from('expenses')
+      .select('id, type, label, amount_cents, currency, spent_on, city, note')
+      .eq('trip_id', context.trip.id)
+      .order('spent_on', { ascending: false, nullsFirst: false }),
     loadTripStats(context.trip.id),
   ]);
 
@@ -105,6 +116,16 @@ export default async function TripDetailPage({ params }: { params: Promise<{ slu
   const members = asRows<MemberRow>(membersResp);
   const review = asRow<ReviewRow>(reviewResp);
   const media = asRows<MediaRow>(mediaResp);
+  const expenses = asRows<{
+    id: string;
+    type: 'accommodation' | 'transport' | 'activity' | 'food' | 'other';
+    label: string;
+    amount_cents: number;
+    currency: string;
+    spent_on: string | null;
+    city: string | null;
+    note: string | null;
+  }>(expensesResp);
 
   if (!trip) notFound();
 
@@ -187,6 +208,7 @@ export default async function TripDetailPage({ params }: { params: Promise<{ slu
           <StyledTab value="planning">Planning</StyledTab>
           <StyledTab value="depenses">Dépenses</StyledTab>
           <StyledTab value="transports">Transports</StyledTab>
+          <StyledTab value="etapes">Étapes</StyledTab>
           <StyledTab value="logements">Logements</StyledTab>
           <StyledTab value="medias">Médias</StyledTab>
           <StyledTab value="carte">Carte</StyledTab>
@@ -194,7 +216,7 @@ export default async function TripDetailPage({ params }: { params: Promise<{ slu
           <StyledTab value="notation">Notation</StyledTab>
         </TabsList>
 
-        <TabsContent value="planning">
+        <TabsContent value="planning" className="space-y-6">
           <TripPlanning
             tripId={trip.id}
             days={days.map((d) => ({ id: d.id, date: d.date, title: d.title, notes: d.notes }))}
@@ -210,80 +232,121 @@ export default async function TripDetailPage({ params }: { params: Promise<{ slu
             }))}
             canEdit={canEdit}
           />
+          <section className="space-y-3">
+            <h3 className="font-serif text-lg font-semibold">Jours</h3>
+            <DaysCRUD
+              tripId={trip.id}
+              items={days.map((d) => ({ id: d.id, date: d.date, title: d.title, notes: d.notes }))}
+              canEdit={canEdit}
+            />
+          </section>
+          <section className="space-y-3">
+            <h3 className="font-serif text-lg font-semibold">Activités</h3>
+            <ActivitiesCRUD
+              tripId={trip.id}
+              items={activities.map((a) => ({
+                id: a.id,
+                title: a.title,
+                description: a.description,
+                category: a.category,
+                starts_at: a.starts_at,
+                ends_at: a.ends_at,
+                address: a.address,
+                url: a.url,
+                cost_cents: a.cost_cents,
+                cost_currency: a.cost_currency,
+              }))}
+              baseCurrency={trip.base_currency}
+              canEdit={canEdit}
+            />
+          </section>
         </TabsContent>
-        <TabsContent value="depenses">
+        <TabsContent value="depenses" className="space-y-6">
           <TripExpensesSummary
             tripId={trip.id}
             slug={trip.slug}
             stats={stats}
             baseCurrency={trip.base_currency}
           />
+          <ExpensesCRUD
+            tripId={trip.id}
+            items={expenses.map((e) => ({
+              id: e.id,
+              type: e.type,
+              label: e.label,
+              amount_cents: e.amount_cents,
+              currency: e.currency,
+              spent_on: e.spent_on,
+              city: e.city,
+              note: e.note,
+            }))}
+            baseCurrency={trip.base_currency}
+            canEdit={canEdit}
+          />
         </TabsContent>
         <TabsContent value="transports">
-          <TripTransports
-            segments={transports.map((t) => ({
+          <TransportsCRUD
+            tripId={trip.id}
+            items={transports.map((t) => ({
               id: t.id,
               mode: t.mode,
               origin_label: t.origin_label,
               destination_label: t.destination_label,
               depart_at: t.depart_at,
               arrive_at: t.arrive_at,
-              distance_km: t.distance_km,
-              duration_minutes: t.duration_minutes,
               carrier: t.carrier,
               reference: t.reference,
-              emission_kgco2e: t.emission_kgco2e,
-              emission_method: t.emission_method,
-              emission_confidence: t.emission_confidence,
               cost_cents: t.cost_cents,
               cost_currency: t.cost_currency,
+              notes: t.notes,
+            }))}
+            baseCurrency={trip.base_currency}
+            canEdit={canEdit}
+          />
+        </TabsContent>
+        <TabsContent value="etapes">
+          <StopsCRUD
+            tripId={trip.id}
+            items={stops.map((s) => ({
+              id: s.id,
+              name: s.name,
+              city: s.city,
+              country_code: s.country_code,
+              arrival_date: s.arrival_date,
+              departure_date: s.departure_date,
+              notes: s.notes,
             }))}
             canEdit={canEdit}
           />
         </TabsContent>
         <TabsContent value="logements">
-          <ul className="grid gap-3 sm:grid-cols-2">
-            {accommodations.map((a) => (
-              <li key={a.id} className="rounded-xl border bg-card p-4">
-                <p className="font-medium">{a.name}</p>
-                <p className="text-xs text-muted-foreground">{a.kind}</p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {formatDateRange(a.check_in_date, a.check_out_date)}
-                </p>
-                {a.address && <p className="mt-1 text-sm">{a.address}</p>}
-                {a.cost_cents != null && (
-                  <p className="mt-2 text-sm font-medium">
-                    {formatCurrency(a.cost_cents, a.cost_currency ?? trip.base_currency)}
-                  </p>
-                )}
-                {a.booking_url && (
-                  <a
-                    href={a.booking_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-2 inline-block text-xs text-primary hover:underline"
-                  >
-                    Voir la réservation
-                  </a>
-                )}
-              </li>
-            ))}
-            {accommodations.length === 0 && (
-              <li className="col-span-full rounded-xl border border-dashed bg-muted/30 p-8 text-center text-sm text-muted-foreground">
-                Aucun logement renseigné.
-              </li>
-            )}
-          </ul>
+          <AccommodationsCRUD
+            tripId={trip.id}
+            items={accommodations.map((a) => ({
+              id: a.id,
+              name: a.name,
+              kind: a.kind,
+              check_in_date: a.check_in_date,
+              check_out_date: a.check_out_date,
+              address: a.address,
+              booking_url: a.booking_url,
+              cost_cents: a.cost_cents,
+              cost_currency: a.cost_currency,
+              notes: a.notes,
+            }))}
+            baseCurrency={trip.base_currency}
+            canEdit={canEdit}
+          />
         </TabsContent>
         <TabsContent value="medias">
-          <TripMedia
+          <MediaCRUD
             tripId={trip.id}
-            links={media.map((m) => ({
+            items={media.map((m) => ({
               id: m.id,
-              url: m.url,
               kind: m.kind,
+              url: m.url,
               title: m.title,
-              thumbnail_url: m.thumbnail_url,
+              description: m.description ?? null,
             }))}
             canEdit={canEdit}
           />

@@ -1,7 +1,7 @@
 # CapNomade — État d'avancement
 
 > Ce fichier est mis à jour à chaque push.
-> Dernière mise à jour : **2026-05-16** — fix RLS trips (RPC SECURITY DEFINER) + cleanup debug + perf modals.
+> Dernière mise à jour : **2026-05-17** — CRUD complet sur tous les onglets d'un voyage + sélecteur pays + map toujours visible + cover image.
 
 ---
 
@@ -35,6 +35,40 @@
 
 ## Journal des fixes / patchs
 
+- **2026-05-17 · CRUD complet onglets de voyage (commit n°30)** — gros batch
+  qui transforme tous les onglets du détail voyage en tableaux éditables.
+  1. **Server actions** `src/server/actions/tripDetail.ts` : upsert + delete
+     pour 7 entités (expenses, transports, stops, accommodations, activities,
+     days, media). Chaque action vérifie `assertTripAccess(tripId, 'editor')`.
+  2. **Schémas Zod** `src/lib/schemas/tripDetail.ts` : 7 schémas form
+     correspondants, transformations de coercion sur les devises/dates.
+  3. **Composants CRUD** `src/components/trip/crud/` : 7 fichiers
+     (`ExpensesCRUD`, `TransportsCRUD`, `StopsCRUD`, `AccommodationsCRUD`,
+     `ActivitiesCRUD`, `DaysCRUD`, `MediaCRUD`). Pattern commun : tableau
+     avec en-tête sticky, boutons Edit/Delete par ligne, bouton "+ Ajouter"
+     en haut, modal pour create/edit, `router.refresh()` après chaque action.
+  4. **Page détail** `/voyages/[slug]/page.tsx` : nouvel onglet "Étapes"
+     ajouté entre Transports et Logements. Tous les onglets remplacés ou
+     augmentés avec les CRUD :
+       - Planning : conserve TripPlanning + ajoute DaysCRUD + ActivitiesCRUD
+       - Dépenses : conserve TripExpensesSummary + ajoute ExpensesCRUD
+       - Transports : remplace TripTransports par TransportsCRUD
+       - Étapes (nouveau) : StopsCRUD
+       - Logements : remplace l'inline par AccommodationsCRUD
+       - Médias : remplace TripMedia par MediaCRUD
+  5. Query expenses ajoutée dans le `Promise.all` (était absente).
+- **2026-05-17 · CountryMultiSelect + map toujours visible + cover image (commits n°28-29)** — 
+  1. `src/lib/data/countries.ts` (≈ 200 pays ISO2 → nom français + helpers
+     `searchCountries`/`countryName`) + `src/components/ui/country-multiselect.tsx`
+     (combobox avec recherche autocomplétée, chips supprimables).
+  2. Dashboard : la `WorldMap` s'affiche TOUJOURS, calcule les pays visités
+     depuis toutes les trips status `completed`/`archived`.
+  3. `WorldMap` : nouveau prop `visitedCountries`, fetch GeoJSON Natural Earth
+     (CDN jsdelivr) au load, superpose une fill layer teal + outline sur les
+     pays visités. Fallback silencieux si fetch échoue.
+  4. Cover image : section dans le modal d'édition, upload client via
+     supabase-js (`trip-covers` bucket), affichage en bandeau sur la page
+     détail. Schéma `createTripSchema` étend `cover_image_url`.
 - **2026-05-16 · Cleanup debug + perf modals (commit n°27)** —
   1. Suppression de la route `/api/debug/auth` et de toutes les fonctions de
      debug Postgres (migration `0011_cleanup_debug_functions.sql`).
