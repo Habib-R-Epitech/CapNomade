@@ -55,6 +55,13 @@ interface MemberRow {
   user_id: string;
 }
 
+interface FlightRow {
+  trip_id: string;
+  total_distance_km: number | string | null;
+  total_duration_minutes: number | null;
+  total_emission_kgco2e: number | string | null;
+}
+
 export async function loadGlobalStats(userId: string): Promise<GlobalStats> {
   const supabase = await getSupabaseServerClient();
 
@@ -88,9 +95,9 @@ export async function loadGlobalStats(userId: string): Promise<GlobalStats> {
 
   const completedIds = completedTrips.map((t) => t.id);
 
-  // These three queries all depend on tripIds but don't depend on each other,
-  // so fire them in parallel rather than sequentially.
-  const [transportsResp, expensesResp, membersResp] = await Promise.all([
+  // These queries all depend on tripIds but don't depend on each other, so
+  // fire them in parallel rather than sequentially.
+  const [transportsResp, expensesResp, membersResp, flightsResp] = await Promise.all([
     tripIds.length
       ? supabase
           .from('transport_segments')
@@ -109,11 +116,18 @@ export async function loadGlobalStats(userId: string): Promise<GlobalStats> {
           .select('trip_id, user_id')
           .in('trip_id', completedIds)
       : Promise.resolve({ data: [], error: null } as { data: unknown[]; error: null }),
+    tripIds.length
+      ? supabase
+          .from('trip_flights')
+          .select('trip_id, total_distance_km, total_duration_minutes, total_emission_kgco2e')
+          .in('trip_id', tripIds)
+      : Promise.resolve({ data: [], error: null } as { data: unknown[]; error: null }),
   ]);
 
   const transports = asRows<TransportRow>(transportsResp);
   const expenses = asRows<ExpenseRow>(expensesResp);
   const members = asRows<MemberRow>(membersResp);
+  const flights = asRows<FlightRow>(flightsResp);
 
   let flightMinutes = 0;
   let flightKm = 0;
@@ -129,6 +143,14 @@ export async function loadGlobalStats(userId: string): Promise<GlobalStats> {
       carMinutes += Number(seg.duration_minutes ?? 0);
       carKm += Number(seg.distance_km ?? 0);
     }
+  }
+  // Roll the trip_flights widget (vol aller / vol retour) totals into the same
+  // aggregates so the dashboard "Vols cumulés" / "Km en avion" tiles include
+  // them.
+  for (const f of flights) {
+    flightKm += Number(f.total_distance_km ?? 0);
+    flightMinutes += Number(f.total_duration_minutes ?? 0);
+    carbonKg += Number(f.total_emission_kgco2e ?? 0);
   }
 
   const totalsByTrip = new Map<string, number>();
