@@ -11,7 +11,7 @@ import { WidgetCard } from '@/components/dashboard/WidgetCard';
 import { WorldMap, type MapTripPoint } from '@/components/dashboard/WorldMap';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import type { TripStatus, WishStatus } from '@/lib/types/database';
+import type { TripStatus } from '@/lib/types/database';
 import { extractLngLat } from '@/lib/geo/extractLngLat';
 
 export const metadata: Metadata = { title: 'Dashboard', robots: { index: false, follow: false } };
@@ -34,9 +34,7 @@ interface RecentTripRow {
 interface WishRow {
   id: string;
   title: string;
-  country: string | null;
-  status: WishStatus;
-  priority: number;
+  primary_countries: string[] | null;
 }
 interface PointStopRow {
   id: string;
@@ -81,10 +79,11 @@ export default async function DashboardHome() {
       .order('updated_at', { ascending: false })
       .limit(5),
     supabase
-      .from('wish_items')
-      .select('id, title, country, status, priority')
-      .eq('user_id', session.userId)
-      .order('priority', { ascending: false })
+      .from('trips')
+      .select('id, title, primary_countries, trip_members!inner(user_id)')
+      .eq('trip_members.user_id', session.userId)
+      .eq('status', 'wishlist')
+      .order('updated_at', { ascending: false })
       .limit(5),
     supabase
       .from('trip_invitations')
@@ -137,10 +136,12 @@ export default async function DashboardHome() {
     : 0;
 
   // One pin per geo-located stop — users want to see every city, not just one
-  // representative point per trip.
+  // representative point per trip. Wishlist trips are aspirations, not visited
+  // places, so they don't get pins.
   const points: MapTripPoint[] = [];
   for (const stop of pointStops) {
     if (!stop.trips) continue;
+    if (stop.trips.status === 'wishlist') continue;
     const coords = extractLngLat(stop.location);
     if (!coords) continue;
     points.push({
@@ -225,7 +226,9 @@ export default async function DashboardHome() {
           {wishes.slice(0, 3).map((w) => (
             <div key={w.id} className="flex items-center justify-between border-t pt-2 text-sm">
               <span className="truncate">{w.title}</span>
-              <Badge variant="muted">{w.status}</Badge>
+              {w.primary_countries && w.primary_countries.length > 0 && (
+                <Badge variant="muted">{w.primary_countries.slice(0, 2).join(', ')}</Badge>
+              )}
             </div>
           ))}
         </WidgetCard>

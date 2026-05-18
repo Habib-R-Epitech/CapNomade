@@ -12,7 +12,7 @@
 
 export type Json = string | number | boolean | null | { [key: string]: Json } | Json[];
 
-export type TripStatus = 'draft' | 'planning' | 'booked' | 'completed' | 'archived';
+export type TripStatus = 'wishlist' | 'draft' | 'planning' | 'booked' | 'completed' | 'archived';
 export type TripVisibility = 'private' | 'members' | 'public';
 export type TripRole = 'owner' | 'editor' | 'viewer';
 export type InvitationStatus = 'pending' | 'accepted' | 'declined' | 'expired' | 'cancelled';

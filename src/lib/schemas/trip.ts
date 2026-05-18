@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
-export const tripStatusSchema = z.enum(['draft', 'planning', 'booked', 'completed', 'archived']);
+export const tripStatusSchema = z.enum(['wishlist', 'draft', 'planning', 'booked', 'completed', 'archived']);
 export const tripVisibilitySchema = z.enum(['private', 'members', 'public']);
 
 export const createTripSchema = z.object({

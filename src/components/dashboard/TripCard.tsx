@@ -6,6 +6,7 @@ import { formatDateRange } from '@/lib/utils';
 import type { TripStatus } from '@/lib/types/database';
 
 const STATUS_LABEL: Record<TripStatus, { label: string; tone: 'default' | 'success' | 'warning' | 'muted' }> = {
+  wishlist: { label: 'Envie', tone: 'default' },
   draft: { label: 'Brouillon', tone: 'muted' },
   planning: { label: 'Planning', tone: 'default' },
   booked: { label: 'Réservé', tone: 'warning' },

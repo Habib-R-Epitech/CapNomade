@@ -42,6 +42,7 @@ import { TripCitiesBar } from '@/components/trip/TripCitiesBar';
 import { TripCountryMap } from '@/components/trip/TripCountryMap';
 import { TripJourneyBuilder, type JourneyLeg } from '@/components/trip/TripJourneyBuilder';
 import { TripFlights, type TripFlight } from '@/components/trip/TripFlights';
+import { TripStatusToggle } from '@/components/trip/TripStatusToggle';
 import { ExpensesCRUD } from '@/components/trip/crud/ExpensesCRUD';
 import { TransportsCRUD } from '@/components/trip/crud/TransportsCRUD';
 import { StopsCRUD } from '@/components/trip/crud/StopsCRUD';
@@ -160,7 +161,11 @@ export default async function TripDetailPage({ params }: { params: Promise<{ slu
     }));
 
   const canEdit = context.canEdit;
-  const isCompletable = canEdit && trip.status !== 'completed' && trip.status !== 'archived';
+  // Wishlist trips graduate through the status toggle (envie → planifié →
+  // réalisé). They skip the "Mark as done" review modal.
+  const isCompletable =
+    canEdit &&
+    (trip.status === 'planning' || trip.status === 'booked' || trip.status === 'draft');
 
   return (
     <div className="mx-auto max-w-7xl space-y-8">
@@ -176,9 +181,19 @@ export default async function TripDetailPage({ params }: { params: Promise<{ slu
       )}
       <header className="space-y-4">
         <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-          <Link href="/voyages" className="hover:text-foreground">
-            Mes voyages
-          </Link>
+          {(() => {
+            const parent =
+              trip.status === 'wishlist'
+                ? { href: '/envies' as const, label: 'Mes envies' }
+                : trip.status === 'planning' || trip.status === 'booked'
+                  ? { href: '/voyages/planifies' as const, label: 'Voyages planifiés' }
+                  : { href: '/voyages' as const, label: 'Mes voyages' };
+            return (
+              <Link href={parent.href} className="hover:text-foreground">
+                {parent.label}
+              </Link>
+            );
+          })()}
           <span>·</span>
           <Badge variant="muted">{statusLabel(trip.status)}</Badge>
           {trip.primary_countries.length > 0 && (
@@ -187,7 +202,12 @@ export default async function TripDetailPage({ params }: { params: Promise<{ slu
             </span>
           )}
         </div>
-        <h1 className="font-serif text-4xl font-semibold leading-tight md:text-5xl">{trip.title}</h1>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <h1 className="font-serif text-4xl font-semibold leading-tight md:text-5xl">
+            {trip.title}
+          </h1>
+          <TripStatusToggle tripId={trip.id} status={trip.status} canEdit={canEdit} />
+        </div>
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted-foreground">
           {(trip.start_date || trip.end_date) && (
             <span className="inline-flex items-center gap-1.5">
@@ -438,8 +458,9 @@ function StyledTab({ value, children }: { value: string; children: React.ReactNo
 function statusLabel(status: string): string {
   return (
     {
+      wishlist: 'Envie',
       draft: 'Brouillon',
-      planning: 'Planning',
+      planning: 'Planifié',
       booked: 'Réservé',
       completed: 'Réalisé',
       archived: 'Archivé',

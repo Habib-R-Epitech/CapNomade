@@ -75,7 +75,9 @@ export async function loadGlobalStats(userId: string): Promise<GlobalStats> {
 
   const completedTrips = tripsArr.filter((t) => t.status === 'completed');
   const plannedTrips = tripsArr.filter((t) => t.status === 'planning' || t.status === 'booked');
-  const tripIds = tripsArr.map((t) => t.id);
+  // Wishlist trips are explicitly excluded from cumulative stats — they
+  // haven't happened, so they shouldn't count in km / hours / CO₂.
+  const realTripIds = tripsArr.filter((t) => t.status !== 'wishlist').map((t) => t.id);
 
   const countrySet = new Set<string>();
   const countryCount = new Map<string, number>();
@@ -98,11 +100,11 @@ export async function loadGlobalStats(userId: string): Promise<GlobalStats> {
   // These queries all depend on tripIds but don't depend on each other, so
   // fire them in parallel rather than sequentially.
   const [transportsResp, expensesResp, membersResp, flightsResp] = await Promise.all([
-    tripIds.length
+    realTripIds.length
       ? supabase
           .from('transport_segments')
           .select('mode, duration_minutes, distance_km, emission_kgco2e, trip_id')
-          .in('trip_id', tripIds)
+          .in('trip_id', realTripIds)
       : Promise.resolve({ data: [], error: null } as { data: unknown[]; error: null }),
     completedIds.length
       ? supabase
@@ -116,11 +118,11 @@ export async function loadGlobalStats(userId: string): Promise<GlobalStats> {
           .select('trip_id, user_id')
           .in('trip_id', completedIds)
       : Promise.resolve({ data: [], error: null } as { data: unknown[]; error: null }),
-    tripIds.length
+    realTripIds.length
       ? supabase
           .from('trip_flights')
           .select('trip_id, total_distance_km, total_duration_minutes, total_emission_kgco2e')
-          .in('trip_id', tripIds)
+          .in('trip_id', realTripIds)
       : Promise.resolve({ data: [], error: null } as { data: unknown[]; error: null }),
   ]);
 

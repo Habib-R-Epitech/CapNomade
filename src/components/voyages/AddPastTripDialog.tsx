@@ -38,6 +38,12 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   /** When provided, the dialog runs in edit mode and updates this trip. */
   existing?: ExistingTrip;
+  /**
+   * Selects the create flow. 'past' (default) creates a status='completed'
+   * trip; 'wish' creates a status='wishlist' trip and requires at least one
+   * country. Ignored in edit mode (existing status is preserved).
+   */
+  kind?: 'past' | 'wish';
 }
 
 const MONTHS = [
@@ -64,9 +70,10 @@ function approxFromDates(start: string | null | undefined, end: string | null | 
   return { month: s.getUTCMonth() + 1, year: s.getUTCFullYear(), duration };
 }
 
-export function AddPastTripDialog({ open, onOpenChange, existing }: Props) {
+export function AddPastTripDialog({ open, onOpenChange, existing, kind = 'past' }: Props) {
   const router = useRouter();
   const isEdit = !!existing;
+  const isWishCreate = !isEdit && kind === 'wish';
   const initialApprox = approxFromDates(existing?.start_date, existing?.end_date);
 
   const [pending, setPending] = React.useState(false);
@@ -75,6 +82,12 @@ export function AddPastTripDialog({ open, onOpenChange, existing }: Props) {
   const [approxMonth, setApproxMonth] = React.useState<number>(initialApprox.month);
   const [approxYear, setApproxYear] = React.useState<number>(initialApprox.year);
   const [approxDuration, setApproxDuration] = React.useState<number>(initialApprox.duration);
+  // For envies the user often doesn't know any date yet — we let them skip
+  // the whole block entirely. Past trips always have at least an approximate
+  // period.
+  const [periodEnabled, setPeriodEnabled] = React.useState<boolean>(
+    isWishCreate ? !!(existing?.start_date) : true,
+  );
 
   // Optional fields
   const [countries, setCountries] = React.useState<string[]>(existing?.primary_countries ?? []);
@@ -92,6 +105,7 @@ export function AddPastTripDialog({ open, onOpenChange, existing }: Props) {
       setApproxMonth(approx.month);
       setApproxYear(approx.year);
       setApproxDuration(approx.duration);
+      setPeriodEnabled(isWishCreate ? !!(existing?.start_date) : true);
       setCountries(existing?.primary_countries ?? []);
       setCurrency(existing?.base_currency ?? 'EUR');
       setDescription(existing?.description ?? '');
@@ -168,12 +182,21 @@ export function AddPastTripDialog({ open, onOpenChange, existing }: Props) {
       setTitleError('Le titre doit faire au moins 2 caractères.');
       return;
     }
+    if (isWishCreate && countries.length === 0) {
+      toast.error('Pays obligatoire', { description: 'Sélectionnez au moins un pays.' });
+      return;
+    }
     setTitleError(null);
     setPending(true);
 
     let computedStart: string | null = null;
     let computedEnd: string | null = null;
-    if (approxDuration > 0 && approxYear >= 1900 && approxYear <= CURRENT_YEAR + 1) {
+    if (
+      periodEnabled &&
+      approxDuration > 0 &&
+      approxYear >= 1900 &&
+      approxYear <= CURRENT_YEAR + 5
+    ) {
       const start = new Date(Date.UTC(approxYear, approxMonth - 1, 1));
       const end = new Date(start);
       end.setUTCDate(start.getUTCDate() + approxDuration - 1);
@@ -215,7 +238,7 @@ export function AddPastTripDialog({ open, onOpenChange, existing }: Props) {
 
     const res = await createTripAction({
       title: title.trim(),
-      status: 'completed',
+      status: isWishCreate ? 'wishlist' : 'completed',
       visibility: 'private',
       start_date: computedStart,
       end_date: computedEnd,
@@ -229,7 +252,7 @@ export function AddPastTripDialog({ open, onOpenChange, existing }: Props) {
       setPending(false);
       return;
     }
-    toast.success('Voyage passé ajouté');
+    toast.success(isWishCreate ? 'Envie ajoutée' : 'Voyage passé ajouté');
     onOpenChange(false);
     router.push(`/voyages/${res.data.slug}`);
     router.refresh();
@@ -239,11 +262,19 @@ export function AddPastTripDialog({ open, onOpenChange, existing }: Props) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{isEdit ? 'Modifier le voyage' : 'Ajouter un voyage passé'}</DialogTitle>
+          <DialogTitle>
+            {isEdit
+              ? 'Modifier le voyage'
+              : isWishCreate
+                ? 'Ajouter une envie de voyage'
+                : 'Ajouter un voyage passé'}
+          </DialogTitle>
           <DialogDescription>
             {isEdit
               ? 'Mettez à jour les informations de ce voyage.'
-              : 'Saisissez les informations dont vous vous souvenez. Seul le titre est obligatoire.'}
+              : isWishCreate
+                ? 'Le titre et le pays sont obligatoires. Vous pourrez compléter le reste petit à petit.'
+                : 'Saisissez les informations dont vous vous souvenez. Seul le titre est obligatoire.'}
           </DialogDescription>
         </DialogHeader>
 
@@ -261,7 +292,20 @@ export function AddPastTripDialog({ open, onOpenChange, existing }: Props) {
           </div>
 
           <div className="space-y-2">
-            <Label>Période</Label>
+            <div className="flex items-center justify-between gap-3">
+              <Label>Période {isWishCreate && '(optionnel)'}</Label>
+              {isWishCreate && (
+                <label className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    checked={periodEnabled}
+                    onChange={(e) => setPeriodEnabled(e.target.checked)}
+                  />
+                  Définir une période
+                </label>
+              )}
+            </div>
+            {(!isWishCreate || periodEnabled) && (
             <div className="space-y-3 pt-1">
               <div className="grid gap-3 sm:grid-cols-3">
                   <div className="space-y-1">
@@ -283,7 +327,7 @@ export function AddPastTripDialog({ open, onOpenChange, existing }: Props) {
                       id="past-year"
                       type="number"
                       min={1900}
-                      max={CURRENT_YEAR}
+                      max={CURRENT_YEAR + 5}
                       value={approxYear}
                       onChange={(e) => setApproxYear(Number(e.target.value) || CURRENT_YEAR)}
                     />
@@ -304,11 +348,14 @@ export function AddPastTripDialog({ open, onOpenChange, existing }: Props) {
                 Le voyage sera enregistré du 1er {MONTHS[approxMonth - 1]?.toLowerCase()} {approxYear} pendant {approxDuration} jour{approxDuration > 1 ? 's' : ''}.
               </p>
             </div>
+            )}
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="past-countries">Pays (optionnel)</Label>
+              <Label htmlFor="past-countries">
+                Pays {isWishCreate ? '*' : '(optionnel)'}
+              </Label>
               <CountryMultiSelect
                 id="past-countries"
                 value={countries}
