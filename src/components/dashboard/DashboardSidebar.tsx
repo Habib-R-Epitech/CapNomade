@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -142,6 +143,66 @@ export function MobileNavButton({ unreadInvitations = 0 }: { unreadInvitations?:
     return () => document.removeEventListener('keydown', onKey);
   }, [open]);
 
+  // Portal to document.body : the topbar uses `backdrop-blur`, which creates
+  // a containing block for fixed descendants on iOS Safari + modern Chrome.
+  // Rendering inside the topbar makes the drawer collapse to the topbar
+  // height; the portal sidesteps that.
+  const [mounted, setMounted] = React.useState(false);
+  React.useEffect(() => setMounted(true), []);
+
+  const drawer =
+    open && mounted
+      ? createPortal(
+          <div className="fixed inset-0 z-[60] lg:hidden" role="dialog" aria-modal="true">
+            <button
+              type="button"
+              aria-label="Fermer le menu"
+              onClick={() => setOpen(false)}
+              className="absolute inset-0 bg-black/50"
+            />
+            <div className="absolute inset-y-0 left-0 flex h-full w-72 max-w-[80vw] flex-col border-r bg-background shadow-xl">
+              <div className="flex items-center justify-between border-b px-5 py-4">
+                <Link
+                  href="/dashboard"
+                  onClick={() => setOpen(false)}
+                  aria-label="CapNomade — Accueil"
+                >
+                  <Logo size={30} />
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  className="inline-flex size-9 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+                  aria-label="Fermer le menu"
+                >
+                  <X className="size-5" />
+                </button>
+              </div>
+              <nav
+                className="flex-1 space-y-0.5 overflow-y-auto p-3"
+                aria-label="Navigation principale"
+              >
+                {ITEMS.map(({ href, label, icon: Icon }) => (
+                  <NavLink
+                    key={href}
+                    href={href}
+                    label={label}
+                    Icon={Icon}
+                    active={href === activeHref}
+                    unreadInvitations={unreadInvitations}
+                    onClick={() => setOpen(false)}
+                  />
+                ))}
+              </nav>
+              <div className="border-t p-4 text-xs text-muted-foreground">
+                Privé par défaut · vos données vous appartiennent.
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )
+      : null;
+
   return (
     <>
       <button
@@ -154,52 +215,7 @@ export function MobileNavButton({ unreadInvitations = 0 }: { unreadInvitations?:
       >
         <Menu className="size-5" />
       </button>
-
-      {open && (
-        <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true">
-          <button
-            type="button"
-            aria-label="Fermer le menu"
-            onClick={() => setOpen(false)}
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-          />
-          <div className="absolute inset-y-0 left-0 flex w-72 max-w-[80vw] flex-col border-r bg-background shadow-xl">
-            <div className="flex items-center justify-between border-b px-5 py-4">
-              <Link
-                href="/dashboard"
-                onClick={() => setOpen(false)}
-                aria-label="CapNomade — Accueil"
-              >
-                <Logo size={30} />
-              </Link>
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                className="inline-flex size-9 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
-                aria-label="Fermer le menu"
-              >
-                <X className="size-5" />
-              </button>
-            </div>
-            <nav className="flex-1 space-y-0.5 overflow-y-auto p-3" aria-label="Navigation principale">
-              {ITEMS.map(({ href, label, icon: Icon }) => (
-                <NavLink
-                  key={href}
-                  href={href}
-                  label={label}
-                  Icon={Icon}
-                  active={href === activeHref}
-                  unreadInvitations={unreadInvitations}
-                  onClick={() => setOpen(false)}
-                />
-              ))}
-            </nav>
-            <div className="border-t p-4 text-xs text-muted-foreground">
-              Privé par défaut · vos données vous appartiennent.
-            </div>
-          </div>
-        </div>
-      )}
+      {drawer}
     </>
   );
 }
