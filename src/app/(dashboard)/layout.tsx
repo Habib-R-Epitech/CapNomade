@@ -3,6 +3,7 @@ import { requireSession } from '@/lib/auth/session';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { DashboardSidebar } from '@/components/dashboard/DashboardSidebar';
 import { DashboardTopbar } from '@/components/dashboard/DashboardTopbar';
+import { DemoBanner } from '@/components/dashboard/DemoBanner';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { robots: { index: false, follow: false } };
@@ -25,17 +26,20 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   ]);
 
   return (
-    <div className="flex min-h-screen">
-      <DashboardSidebar unreadInvitations={pendingCount ?? 0} />
-      <div className="flex flex-1 flex-col">
-        <DashboardTopbar
-          fullName={session.profile.full_name}
-          email={session.email}
-          avatarUrl={session.profile.avatar_url}
-          unreadNotifications={unreadCount ?? 0}
-          unreadInvitations={pendingCount ?? 0}
-        />
-        <div className="flex-1 px-4 py-8 md:px-8 md:py-10">{children}</div>
+    <div className="flex min-h-screen flex-col">
+      {session.isDemo && <DemoBanner name={session.profile.full_name} />}
+      <div className="flex flex-1">
+        <DashboardSidebar unreadInvitations={pendingCount ?? 0} />
+        <div className="flex flex-1 flex-col">
+          <DashboardTopbar
+            fullName={session.profile.full_name}
+            email={session.email}
+            avatarUrl={session.profile.avatar_url}
+            unreadNotifications={unreadCount ?? 0}
+            unreadInvitations={pendingCount ?? 0}
+          />
+          <div className="flex-1 px-4 py-8 md:px-8 md:py-10">{children}</div>
+        </div>
       </div>
     </div>
   );

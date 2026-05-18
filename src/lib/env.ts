@@ -37,6 +37,11 @@ const serverSchema = z.object({
   CARBON_FACTOR_TRAIN_KM: z.coerce.number().positive().default(0.027),
   CARBON_FACTOR_BUS_KM: z.coerce.number().positive().default(0.103),
   CARBON_FACTOR_FERRY_KM: z.coerce.number().positive().default(0.115),
+  /**
+   * UUID of the profile that public visitors get to browse in "demo mode"
+   * via the landing-page button. Reads only — writes are blocked.
+   */
+  DEMO_USER_ID: z.string().uuid().optional(),
 });
 
 type PublicEnv = z.infer<typeof publicSchema>;

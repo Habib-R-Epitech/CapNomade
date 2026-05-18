@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { updateSession } from '@/lib/supabase/middleware';
+import { DEMO_COOKIE } from '@/lib/auth/demo';
 
 const PROTECTED_PREFIXES = ['/dashboard', '/voyages', '/envies', '/invitations', '/parametres'];
 const AUTH_ONLY_PREFIXES = ['/auth/onboarding'];
@@ -12,8 +13,9 @@ export async function middleware(request: NextRequest) {
     (p) => pathname === p || pathname.startsWith(`${p}/`),
   );
   const isAuthOnly = AUTH_ONLY_PREFIXES.some((p) => pathname.startsWith(p));
+  const isDemo = !user && request.cookies.get(DEMO_COOKIE)?.value === '1';
 
-  if (isProtected && !user) {
+  if (isProtected && !user && !isDemo) {
     const url = request.nextUrl.clone();
     url.pathname = '/connexion';
     url.search = '';
@@ -21,6 +23,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // Onboarding is only meaningful for real accounts.
   if (isAuthOnly && !user) {
     const url = request.nextUrl.clone();
     url.pathname = '/connexion';

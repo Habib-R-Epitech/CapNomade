@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Sparkles, MapPinned, Wallet, Users } from 'lucide-react';
+import { Sparkles, MapPinned, Wallet, Users, Eye } from 'lucide-react';
 import { SignInButton } from '@/components/auth/SignInButton';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -25,13 +25,19 @@ export function HeroSection() {
             <Button asChild size="xl">
               <Link href="/inscription">Créer mon compte gratuitement</Link>
             </Button>
-            <SignInButton size="xl" variant="outline" label="Continuer avec Google" />
+            <Button asChild size="xl" variant="outline">
+              <a href="/demo/enter">
+                <Eye className="size-4" /> Voir la démo de Ruben
+              </a>
+            </Button>
           </div>
           <p className="text-xs text-muted-foreground">
             Déjà inscrit ?{' '}
             <Link href="/connexion" className="font-medium text-foreground hover:underline">
               Se connecter
             </Link>
+            {' · '}
+            <SignInButton variant="ghost" size="sm" label="Continuer avec Google" />
             {' · '}
             <a href="#fonctionnalites" className="hover:underline">Voir les fonctionnalités</a>
           </p>
