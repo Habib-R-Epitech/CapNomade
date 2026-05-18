@@ -25,10 +25,14 @@ export interface TripFlight {
 
 interface Props {
   tripId: string;
-  countries: string[]; // ISO2 — scopes the autocomplete suggestions
   initialFlights: TripFlight[];
   canEdit: boolean;
 }
+
+// Flights span the entire world — a Paris→Tokyo trip can leave from anywhere
+// and stop over anywhere. We deliberately do NOT pass the trip's
+// primary_countries to the autocomplete here, unlike TripCitiesBar.
+const FLIGHT_COUNTRY_SCOPE: string[] = [];
 
 const HAVERSINE_R = 6371;
 function haversineKm(a: FlightWaypoint, b: FlightWaypoint): number {
@@ -66,7 +70,7 @@ function preview(waypoints: FlightWaypoint[]): {
   return { km: Math.round(km), minutes: Math.round(minutes), kgCO2: Math.round(co2 * 10) / 10 };
 }
 
-export function TripFlights({ tripId, countries, initialFlights, canEdit }: Props) {
+export function TripFlights({ tripId, initialFlights, canEdit }: Props) {
   const router = useRouter();
   const initialOutbound = initialFlights.find((f) => f.direction === 'outbound');
   const initialReturn = initialFlights.find((f) => f.direction === 'return');
@@ -125,7 +129,6 @@ export function TripFlights({ tripId, countries, initialFlights, canEdit }: Prop
           setOutbound(wp);
           setDirty(true);
         }}
-        countries={countries}
         canEdit={canEdit}
       />
 
@@ -136,7 +139,6 @@ export function TripFlights({ tripId, countries, initialFlights, canEdit }: Prop
           setBack(wp);
           setDirty(true);
         }}
-        countries={countries}
         canEdit={canEdit}
       />
     </section>
@@ -147,13 +149,11 @@ function FlightEditor({
   label,
   waypoints,
   onChange,
-  countries,
   canEdit,
 }: {
   label: string;
   waypoints: FlightWaypoint[];
   onChange: (wp: FlightWaypoint[]) => void;
-  countries: string[];
   canEdit: boolean;
 }) {
   const totals = preview(waypoints);
@@ -248,7 +248,6 @@ function FlightEditor({
             setEditingSlot(null);
           }}
           onClear={() => setDeparture(null)}
-          countries={countries}
         />
 
         {layovers.map((layover, i) => {
@@ -268,7 +267,6 @@ function FlightEditor({
                 setEditingSlot(null);
               }}
               onClear={() => setLayover(i, null)}
-              countries={countries}
             />
           );
         })}
@@ -278,7 +276,7 @@ function FlightEditor({
             <div className="flex items-center gap-2 pl-3">
               <CityAutocomplete
                 autoFocus
-                countries={countries}
+                countries={FLIGHT_COUNTRY_SCOPE}
                 placeholder="Ville d'escale…"
                 onPick={(c) => {
                   if (c.lng != null && c.lat != null) {
@@ -316,7 +314,6 @@ function FlightEditor({
             setEditingSlot(null);
           }}
           onClear={() => setArrival(null)}
-          countries={countries}
         />
       </div>
     </div>
@@ -332,7 +329,6 @@ function WaypointRow({
   onCancel,
   onPick,
   onClear,
-  countries,
 }: {
   slotLabel: string;
   waypoint: FlightWaypoint | null;
@@ -342,7 +338,6 @@ function WaypointRow({
   onCancel: () => void;
   onPick: (wp: FlightWaypoint) => void;
   onClear: () => void;
-  countries: string[];
 }) {
   if (editing) {
     return (
@@ -352,7 +347,7 @@ function WaypointRow({
         </span>
         <CityAutocomplete
           autoFocus
-          countries={countries}
+          countries={FLIGHT_COUNTRY_SCOPE}
           placeholder="Ville ou aéroport…"
           onPick={(c) => {
             if (c.lng != null && c.lat != null) {

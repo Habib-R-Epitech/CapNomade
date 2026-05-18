@@ -234,7 +234,6 @@ export default async function TripDetailPage({ params }: { params: Promise<{ slu
 
         <TripFlights
           tripId={trip.id}
-          countries={(trip.primary_countries ?? []).map((c: string) => c.toUpperCase())}
           initialFlights={flights}
           canEdit={canEdit}
         />
