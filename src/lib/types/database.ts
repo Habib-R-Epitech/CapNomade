@@ -19,7 +19,7 @@ export type InvitationStatus = 'pending' | 'accepted' | 'declined' | 'expired' |
 export type ExpenseType = 'accommodation' | 'transport' | 'activity' | 'food' | 'other';
 export type ExpensePaymentStatus = 'paid' | 'partial' | 'unpaid';
 export type ExpenseSplitMethod = 'equal' | 'custom' | 'percentage' | 'fixed_amount';
-export type TransportMode = 'plane' | 'car' | 'train' | 'bus' | 'ferry' | 'other';
+export type TransportMode = 'plane' | 'car' | 'train' | 'bus' | 'ferry' | 'motorcycle' | 'other';
 export type AccommodationType = 'hotel' | 'airbnb' | 'hostel' | 'camping' | 'friends' | 'other';
 export type WishStatus = 'idea' | 'researching' | 'almost_ready' | 'planned';
 export type WishCompanyType = 'solo' | 'couple' | 'friends' | 'family' | 'any';
@@ -171,6 +171,8 @@ interface TransportSegmentRow {
   id: string;
   trip_id: string;
   mode: TransportMode;
+  origin_stop_id: string | null;
+  destination_stop_id: string | null;
   origin_label: string | null;
   destination_label: string | null;
   origin_location: unknown | null;

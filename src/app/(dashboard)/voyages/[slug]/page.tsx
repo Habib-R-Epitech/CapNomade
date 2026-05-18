@@ -40,6 +40,7 @@ import { CompleteTripDialog } from '@/components/trip/CompleteTripDialog';
 import { EditTripButton } from '@/components/voyages/EditTripButton';
 import { TripCitiesBar } from '@/components/trip/TripCitiesBar';
 import { TripCountryMap } from '@/components/trip/TripCountryMap';
+import { TripJourneyBuilder, type JourneyLeg } from '@/components/trip/TripJourneyBuilder';
 import { ExpensesCRUD } from '@/components/trip/crud/ExpensesCRUD';
 import { TransportsCRUD } from '@/components/trip/crud/TransportsCRUD';
 import { StopsCRUD } from '@/components/trip/crud/StopsCRUD';
@@ -137,6 +138,19 @@ export default async function TripDetailPage({ params }: { params: Promise<{ slu
     })
     .filter((p): p is { id: string; name: string; lng: number; lat: number } => p !== null);
 
+  // Legs built by the journey UI carry origin_stop_id + destination_stop_id;
+  // anything created via the standalone Transports tab won't, so filter those out.
+  const journeyLegs: JourneyLeg[] = transports
+    .filter(
+      (t): t is TransportRow & { origin_stop_id: string; destination_stop_id: string } =>
+        !!t.origin_stop_id && !!t.destination_stop_id,
+    )
+    .map((t) => ({
+      origin_stop_id: t.origin_stop_id,
+      destination_stop_id: t.destination_stop_id,
+      mode: t.mode,
+    }));
+
   const canEdit = context.canEdit;
   const isCompletable = canEdit && trip.status !== 'completed' && trip.status !== 'archived';
 
@@ -214,6 +228,13 @@ export default async function TripDetailPage({ params }: { params: Promise<{ slu
           tripId={trip.id}
           cities={stops.map((s) => ({ id: s.id, name: s.name, city: s.city }))}
           countries={(trip.primary_countries ?? []).map((c: string) => c.toUpperCase())}
+          canEdit={canEdit}
+        />
+
+        <TripJourneyBuilder
+          tripId={trip.id}
+          cities={cityPins}
+          initialLegs={journeyLegs}
           canEdit={canEdit}
         />
 

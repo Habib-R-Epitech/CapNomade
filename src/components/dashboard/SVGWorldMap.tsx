@@ -83,9 +83,9 @@ export function SVGWorldMap({
             key={i}
             d={c.d}
             fill={c.visited ? '#0d9488' : 'hsl(var(--card))'}
-            fillOpacity={c.visited ? 0.6 : 1}
-            stroke={c.visited ? '#0d9488' : 'rgba(0,0,0,0.15)'}
-            strokeWidth={c.visited ? 0.8 : 0.4}
+            fillOpacity={c.visited ? 0.9 : 1}
+            stroke={c.visited ? '#0a7268' : 'rgba(0,0,0,0.15)'}
+            strokeWidth={c.visited ? 1 : 0.4}
           >
             {c.name && <title>{c.name}</title>}
           </path>
@@ -94,7 +94,7 @@ export function SVGWorldMap({
           const [cx, cy] = project(p.lng, p.lat);
           return (
             <g
-              key={p.trip_id}
+              key={p.id}
               onMouseEnter={() => setHovered(p)}
               onMouseLeave={() => setHovered(null)}
               onClick={() => router.push(`/voyages/${p.slug}`)}
@@ -109,7 +109,10 @@ export function SVGWorldMap({
 
       {hovered && (
         <div className="pointer-events-none absolute left-3 top-3 rounded-md border bg-popover px-3 py-2 text-xs shadow-md">
-          <div className="font-medium">{hovered.title}</div>
+          {hovered.stop_name && <div className="font-medium">{hovered.stop_name}</div>}
+          <div className={hovered.stop_name ? 'text-muted-foreground' : 'font-medium'}>
+            {hovered.title}
+          </div>
           <div className="text-muted-foreground">
             {hovered.status}
             {hovered.start_date ? ` · ${hovered.start_date}` : ''}

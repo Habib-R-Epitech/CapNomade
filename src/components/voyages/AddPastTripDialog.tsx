@@ -47,22 +47,34 @@ const MONTHS = [
 
 const CURRENT_YEAR = new Date().getUTCFullYear();
 
+function approxFromDates(start: string | null | undefined, end: string | null | undefined) {
+  // Pre-fill approximate fields from an existing exact range when editing a
+  // trip that was created before "Dates exactes" was removed.
+  const fallback = { month: new Date().getUTCMonth() + 1, year: CURRENT_YEAR, duration: 7 };
+  if (!start) return fallback;
+  const s = new Date(start);
+  if (Number.isNaN(s.getTime())) return fallback;
+  let duration = 7;
+  if (end) {
+    const e = new Date(end);
+    if (!Number.isNaN(e.getTime())) {
+      duration = Math.max(1, Math.round((e.getTime() - s.getTime()) / 86400000) + 1);
+    }
+  }
+  return { month: s.getUTCMonth() + 1, year: s.getUTCFullYear(), duration };
+}
+
 export function AddPastTripDialog({ open, onOpenChange, existing }: Props) {
   const router = useRouter();
   const isEdit = !!existing;
+  const initialApprox = approxFromDates(existing?.start_date, existing?.end_date);
+
   const [pending, setPending] = React.useState(false);
   const [title, setTitle] = React.useState(existing?.title ?? '');
   const [titleError, setTitleError] = React.useState<string | null>(null);
-  const [dateMode, setDateMode] = React.useState<'exact' | 'approx'>('exact');
-
-  // Exact mode
-  const [startDate, setStartDate] = React.useState(existing?.start_date ?? '');
-  const [endDate, setEndDate] = React.useState(existing?.end_date ?? '');
-
-  // Approximate mode
-  const [approxMonth, setApproxMonth] = React.useState<number>(new Date().getUTCMonth() + 1);
-  const [approxYear, setApproxYear] = React.useState<number>(CURRENT_YEAR);
-  const [approxDuration, setApproxDuration] = React.useState<number>(7);
+  const [approxMonth, setApproxMonth] = React.useState<number>(initialApprox.month);
+  const [approxYear, setApproxYear] = React.useState<number>(initialApprox.year);
+  const [approxDuration, setApproxDuration] = React.useState<number>(initialApprox.duration);
 
   // Optional fields
   const [countries, setCountries] = React.useState<string[]>(existing?.primary_countries ?? []);
@@ -74,14 +86,12 @@ export function AddPastTripDialog({ open, onOpenChange, existing }: Props) {
 
   React.useEffect(() => {
     if (!open) {
+      const approx = approxFromDates(existing?.start_date, existing?.end_date);
       setTitle(existing?.title ?? '');
       setTitleError(null);
-      setDateMode('exact');
-      setStartDate(existing?.start_date ?? '');
-      setEndDate(existing?.end_date ?? '');
-      setApproxMonth(new Date().getUTCMonth() + 1);
-      setApproxYear(CURRENT_YEAR);
-      setApproxDuration(7);
+      setApproxMonth(approx.month);
+      setApproxYear(approx.year);
+      setApproxDuration(approx.duration);
       setCountries(existing?.primary_countries ?? []);
       setCurrency(existing?.base_currency ?? 'EUR');
       setDescription(existing?.description ?? '');
@@ -163,32 +173,23 @@ export function AddPastTripDialog({ open, onOpenChange, existing }: Props) {
 
     let computedStart: string | null = null;
     let computedEnd: string | null = null;
-    if (dateMode === 'exact') {
-      computedStart = startDate || null;
-      computedEnd = endDate || null;
-    } else {
-      if (approxDuration > 0 && approxYear >= 1900 && approxYear <= CURRENT_YEAR + 1) {
-        const start = new Date(Date.UTC(approxYear, approxMonth - 1, 1));
-        const end = new Date(start);
-        end.setUTCDate(start.getUTCDate() + approxDuration - 1);
-        computedStart = start.toISOString().slice(0, 10);
-        computedEnd = end.toISOString().slice(0, 10);
-      }
+    if (approxDuration > 0 && approxYear >= 1900 && approxYear <= CURRENT_YEAR + 1) {
+      const start = new Date(Date.UTC(approxYear, approxMonth - 1, 1));
+      const end = new Date(start);
+      end.setUTCDate(start.getUTCDate() + approxDuration - 1);
+      computedStart = start.toISOString().slice(0, 10);
+      computedEnd = end.toISOString().slice(0, 10);
     }
 
     const countryCodes = countries.map((c) => c.toUpperCase()).filter((c) => /^[A-Z]{2}$/.test(c));
 
-    const approxNote =
-      dateMode === 'approx'
-        ? `(Dates approximatives — ${MONTHS[approxMonth - 1]} ${approxYear}, ${approxDuration} jour${approxDuration > 1 ? 's' : ''})`
-        : '';
-    // Strip any previously-injected '(Dates approximatives — …)' markers so they
-    // don't stack up on every edit.
-    const cleanedDescription = description
-      .replace(/\s*\(Dates approximatives[^)]*\)\s*/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
-    const finalDescription = [cleanedDescription, approxNote].filter(Boolean).join('\n\n') || null;
+    // Description no longer needs the auto-injected "(Dates approximatives…)"
+    // marker, since all trips are approximate now. Strip any legacy one.
+    const finalDescription =
+      description
+        .replace(/\s*\(Dates approximatives[^)]*\)\s*/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim() || null;
 
     if (isEdit && existing) {
       const res = await updateTripAction({
@@ -261,56 +262,8 @@ export function AddPastTripDialog({ open, onOpenChange, existing }: Props) {
 
           <div className="space-y-2">
             <Label>Période</Label>
-            <div className="inline-flex rounded-md border bg-muted/30 p-1">
-              <button
-                type="button"
-                onClick={() => setDateMode('exact')}
-                className={`rounded px-3 py-1 text-sm transition ${
-                  dateMode === 'exact' ? 'bg-background shadow-sm' : 'text-muted-foreground'
-                }`}
-              >
-                Dates exactes
-              </button>
-              <button
-                type="button"
-                onClick={() => setDateMode('approx')}
-                className={`rounded px-3 py-1 text-sm transition ${
-                  dateMode === 'approx' ? 'bg-background shadow-sm' : 'text-muted-foreground'
-                }`}
-              >
-                Approximatif
-              </button>
-            </div>
-
-            {dateMode === 'exact' ? (
-              <div className="space-y-3 pt-1">
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="space-y-1">
-                    <Label htmlFor="past-start" className="text-xs font-normal">Date de départ</Label>
-                    <Input
-                      id="past-start"
-                      type="date"
-                      value={startDate}
-                      onChange={(e) => setStartDate(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label htmlFor="past-end" className="text-xs font-normal">Date de retour</Label>
-                    <Input
-                      id="past-end"
-                      type="date"
-                      value={endDate}
-                      onChange={(e) => setEndDate(e.target.value)}
-                    />
-                  </div>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Vous pouvez laisser ces champs vides si vous ne vous en souvenez pas.
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-3 pt-1">
-                <div className="grid gap-3 sm:grid-cols-3">
+            <div className="space-y-3 pt-1">
+              <div className="grid gap-3 sm:grid-cols-3">
                   <div className="space-y-1">
                     <Label htmlFor="past-month" className="text-xs font-normal">Mois</Label>
                     <select
@@ -347,11 +300,10 @@ export function AddPastTripDialog({ open, onOpenChange, existing }: Props) {
                     />
                   </div>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Le voyage sera enregistré du 1er {MONTHS[approxMonth - 1]?.toLowerCase()} {approxYear} pendant {approxDuration} jour{approxDuration > 1 ? 's' : ''}.
-                </p>
-              </div>
-            )}
+              <p className="text-xs text-muted-foreground">
+                Le voyage sera enregistré du 1er {MONTHS[approxMonth - 1]?.toLowerCase()} {approxYear} pendant {approxDuration} jour{approxDuration > 1 ? 's' : ''}.
+              </p>
+            </div>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">

@@ -12,7 +12,7 @@ import type { ActionResult } from './trips';
 const MAX_BYTES = 5 * 1024 * 1024;
 
 const expenseTypeEnum = z.enum(['accommodation', 'transport', 'activity', 'food', 'other']);
-const transportModeEnum = z.enum(['plane', 'car', 'train', 'bus', 'ferry', 'other']);
+const transportModeEnum = z.enum(['plane', 'car', 'train', 'bus', 'ferry', 'motorcycle', 'other']);
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const ISO2 = /^[A-Z]{2}$/;
 const CCY = /^[A-Z]{3}$/;

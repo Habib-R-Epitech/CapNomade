@@ -20,7 +20,7 @@ export type ExpenseFormInput = z.infer<typeof expenseFormSchema>;
 export const transportFormSchema = z.object({
   id: UUID.optional(),
   trip_id: UUID,
-  mode: z.enum(['plane', 'car', 'train', 'bus', 'ferry', 'other']),
+  mode: z.enum(['plane', 'car', 'train', 'bus', 'ferry', 'motorcycle', 'other']),
   origin_label: z.string().max(120).nullable().optional(),
   destination_label: z.string().max(120).nullable().optional(),
   depart_at: z.string().nullable().optional(),

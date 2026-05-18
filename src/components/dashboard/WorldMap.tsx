@@ -9,9 +9,11 @@ import { loadCountriesGeoJson } from '@/lib/geo/countries';
 import { SVGWorldMap } from './SVGWorldMap';
 
 export interface MapTripPoint {
+  id: string; // unique per pin (trip_stops.id)
   trip_id: string;
   slug: string;
-  title: string;
+  title: string; // trip title
+  stop_name: string | null;
   status: string;
   lat: number;
   lng: number;
@@ -121,7 +123,7 @@ export function WorldMap({
                 ['match', ['get', 'ISO_A2'], codesUpper, true, false],
                 ['match', ['get', 'ISO_A2_EH'], codesUpper, true, false],
               ],
-              paint: { 'fill-color': '#0d9488', 'fill-opacity': 0.35 },
+              paint: { 'fill-color': '#0d9488', 'fill-opacity': 0.75 },
             });
             m.addLayer({
               id: 'visited-countries-outline',
@@ -132,7 +134,7 @@ export function WorldMap({
                 ['match', ['get', 'ISO_A2'], codesUpper, true, false],
                 ['match', ['get', 'ISO_A2_EH'], codesUpper, true, false],
               ],
-              paint: { 'line-color': '#0d9488', 'line-width': 1.2, 'line-opacity': 0.7 },
+              paint: { 'line-color': '#0d9488', 'line-width': 1.4, 'line-opacity': 1 },
             });
           }
         }
@@ -171,11 +173,14 @@ export function WorldMap({
           const f = e.features?.[0];
           if (!f) return;
           const p = f.properties as MapTripPoint;
+          const headline = p.stop_name
+            ? `<strong>${escapeHtml(p.stop_name)}</strong><br/><span style="opacity:.7;">${escapeHtml(p.title)}</span>`
+            : `<strong>${escapeHtml(p.title)}</strong>`;
           popup
             .setLngLat(e.lngLat)
             .setHTML(
               `<div style="font-family: system-ui; font-size: 12px;">
-                <strong>${escapeHtml(p.title)}</strong><br/>
+                ${headline}<br/>
                 <span style="opacity: .7;">${p.status}${p.start_date ? ` · ${p.start_date}` : ''}</span>
               </div>`,
             )

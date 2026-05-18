@@ -39,6 +39,8 @@ interface WishRow {
   priority: number;
 }
 interface PointStopRow {
+  id: string;
+  name: string;
   trip_id: string;
   location: unknown;
   trips: {
@@ -92,10 +94,10 @@ export default async function DashboardHome() {
     loadGlobalStats(session.userId),
     supabase
       .from('trip_stops')
-      .select('trip_id, location, trips!inner(slug, title, status, start_date, end_date, trip_members!inner(user_id))')
+      .select('id, name, trip_id, location, trips!inner(slug, title, status, start_date, end_date, trip_members!inner(user_id))')
       .eq('trips.trip_members.user_id', session.userId)
       .not('location', 'is', null)
-      .limit(500),
+      .limit(1000),
     supabase
       .from('trips')
       .select('primary_countries, status, trip_members!inner(user_id)')
@@ -134,24 +136,25 @@ export default async function DashboardHome() {
       )
     : 0;
 
-  // Build map points from stops' geographies — we receive WKT-ish GeoJSON via supabase-js.
+  // One pin per geo-located stop — users want to see every city, not just one
+  // representative point per trip.
   const points: MapTripPoint[] = [];
-  const seen = new Set<string>();
   for (const stop of pointStops) {
-    if (!stop.trips || seen.has(stop.trip_id)) continue;
+    if (!stop.trips) continue;
     const coords = extractLngLat(stop.location);
     if (!coords) continue;
     points.push({
+      id: stop.id,
       trip_id: stop.trip_id,
       slug: stop.trips.slug,
       title: stop.trips.title,
+      stop_name: stop.name,
       status: stop.trips.status,
       lat: coords.lat,
       lng: coords.lng,
       start_date: stop.trips.start_date,
       end_date: stop.trips.end_date,
     });
-    seen.add(stop.trip_id);
   }
 
   return (

@@ -20,7 +20,7 @@ import { upsertTransportAction, deleteTransportAction } from '@/server/actions/t
 
 export interface TransportRow {
   id: string;
-  mode: 'plane' | 'car' | 'train' | 'bus' | 'ferry' | 'other';
+  mode: 'plane' | 'car' | 'train' | 'bus' | 'ferry' | 'motorcycle' | 'other';
   origin_label: string | null;
   destination_label: string | null;
   depart_at: string | null;
@@ -38,6 +38,7 @@ const MODE_LABELS: Record<TransportRow['mode'], string> = {
   train: 'Train',
   bus: 'Bus',
   ferry: 'Ferry',
+  motorcycle: 'Moto',
   other: 'Autre',
 };
 

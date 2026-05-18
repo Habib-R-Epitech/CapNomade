@@ -1,4 +1,4 @@
-import { Plane, Car, Train, Bus, Ship, Move } from 'lucide-react';
+import { Plane, Car, Train, Bus, Ship, Bike, Move } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { formatCurrency, formatNumber } from '@/lib/utils';
@@ -28,6 +28,7 @@ const ICON: Record<TransportMode, typeof Plane> = {
   train: Train,
   bus: Bus,
   ferry: Ship,
+  motorcycle: Bike,
   other: Move,
 };
 
