@@ -85,9 +85,7 @@ export function AddPastTripDialog({ open, onOpenChange, existing, kind = 'past' 
   // For envies the user often doesn't know any date yet — we let them skip
   // the whole block entirely. Past trips always have at least an approximate
   // period.
-  const [periodEnabled, setPeriodEnabled] = React.useState<boolean>(
-    isWishCreate ? !!(existing?.start_date) : true,
-  );
+  const [periodEnabled, setPeriodEnabled] = React.useState<boolean>(!isWishCreate);
 
   // Optional fields
   const [countries, setCountries] = React.useState<string[]>(existing?.primary_countries ?? []);
@@ -105,7 +103,7 @@ export function AddPastTripDialog({ open, onOpenChange, existing, kind = 'past' 
       setApproxMonth(approx.month);
       setApproxYear(approx.year);
       setApproxDuration(approx.duration);
-      setPeriodEnabled(isWishCreate ? !!(existing?.start_date) : true);
+      setPeriodEnabled(!isWishCreate);
       setCountries(existing?.primary_countries ?? []);
       setCurrency(existing?.base_currency ?? 'EUR');
       setDescription(existing?.description ?? '');
@@ -113,7 +111,7 @@ export function AddPastTripDialog({ open, onOpenChange, existing, kind = 'past' 
       setCoverUploading(false);
       setPending(false);
     }
-  }, [open, existing]);
+  }, [open, existing, isWishCreate]);
 
   async function handleCoverUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
