@@ -44,8 +44,6 @@ import { TripJourneyBuilder, type JourneyLeg } from '@/components/trip/TripJourn
 import { TripFlights, type TripFlight } from '@/components/trip/TripFlights';
 import { TripStatusToggle } from '@/components/trip/TripStatusToggle';
 import { ExpensesCRUD } from '@/components/trip/crud/ExpensesCRUD';
-import { TransportsCRUD } from '@/components/trip/crud/TransportsCRUD';
-import { StopsCRUD } from '@/components/trip/crud/StopsCRUD';
 import { AccommodationsCRUD } from '@/components/trip/crud/AccommodationsCRUD';
 import { MediaCRUD } from '@/components/trip/crud/MediaCRUD';
 import { formatCurrency, formatDateRange } from '@/lib/utils';
@@ -285,11 +283,8 @@ export default async function TripDetailPage({ params }: { params: Promise<{ slu
         <TabsList className="flex h-auto flex-wrap justify-start gap-1 bg-transparent p-0">
           <StyledTab value="planning">Planning</StyledTab>
           <StyledTab value="depenses">Dépenses</StyledTab>
-          <StyledTab value="transports">Transports</StyledTab>
-          <StyledTab value="etapes">Étapes</StyledTab>
           <StyledTab value="logements">Logements</StyledTab>
           <StyledTab value="medias">Médias</StyledTab>
-          <StyledTab value="carte">Carte</StyledTab>
           <StyledTab value="equipe">Équipe</StyledTab>
           <StyledTab value="notation">Notation</StyledTab>
         </TabsList>
@@ -337,41 +332,6 @@ export default async function TripDetailPage({ params }: { params: Promise<{ slu
             canEdit={canEdit}
           />
         </TabsContent>
-        <TabsContent value="transports">
-          <TransportsCRUD
-            tripId={trip.id}
-            items={transports.map((t) => ({
-              id: t.id,
-              mode: t.mode,
-              origin_label: t.origin_label,
-              destination_label: t.destination_label,
-              depart_at: t.depart_at,
-              arrive_at: t.arrive_at,
-              carrier: t.carrier,
-              reference: t.reference,
-              cost_cents: t.cost_cents,
-              cost_currency: t.cost_currency,
-              notes: t.notes,
-            }))}
-            baseCurrency={trip.base_currency}
-            canEdit={canEdit}
-          />
-        </TabsContent>
-        <TabsContent value="etapes">
-          <StopsCRUD
-            tripId={trip.id}
-            items={stops.map((s) => ({
-              id: s.id,
-              name: s.name,
-              city: s.city,
-              country_code: s.country_code,
-              arrival_date: s.arrival_date,
-              departure_date: s.departure_date,
-              notes: s.notes,
-            }))}
-            canEdit={canEdit}
-          />
-        </TabsContent>
         <TabsContent value="logements">
           <AccommodationsCRUD
             tripId={trip.id}
@@ -403,18 +363,6 @@ export default async function TripDetailPage({ params }: { params: Promise<{ slu
             }))}
             canEdit={canEdit}
           />
-        </TabsContent>
-        <TabsContent value="carte" className="space-y-3">
-          <TripCountryMap
-            countries={(trip.primary_countries ?? []).map((c: string) => c.toUpperCase())}
-            cities={cityPins}
-            height={560}
-          />
-          <p className="text-xs text-muted-foreground">
-            {stops.length} étape{stops.length > 1 ? 's' : ''} · {cityPins.length} géolocalisée
-            {cityPins.length > 1 ? 's' : ''} · {transports.length} segment de transport
-            {transports.length > 1 ? 's' : ''}
-          </p>
         </TabsContent>
         <TabsContent value="equipe">
           <TripMembers
