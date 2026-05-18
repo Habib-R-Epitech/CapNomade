@@ -12,6 +12,7 @@ import { WorldMap, type MapTripPoint } from '@/components/dashboard/WorldMap';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import type { TripStatus, WishStatus } from '@/lib/types/database';
+import { extractLngLat } from '@/lib/geo/extractLngLat';
 
 export const metadata: Metadata = { title: 'Dashboard', robots: { index: false, follow: false } };
 
@@ -286,15 +287,3 @@ export default async function DashboardHome() {
   );
 }
 
-function extractLngLat(geo: unknown): { lng: number; lat: number } | null {
-  if (!geo) return null;
-  if (typeof geo === 'object' && geo !== null && 'coordinates' in geo) {
-    const c = (geo as { coordinates: unknown }).coordinates;
-    if (Array.isArray(c) && c.length >= 2) return { lng: Number(c[0]), lat: Number(c[1]) };
-  }
-  if (typeof geo === 'string' && geo.startsWith('POINT')) {
-    const m = /POINT\s*\(\s*(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s*\)/i.exec(geo);
-    if (m) return { lng: Number(m[1]), lat: Number(m[2]) };
-  }
-  return null;
-}

@@ -27,6 +27,17 @@ const ITEMS = [
 export function DashboardSidebar({ unreadInvitations = 0 }: { unreadInvitations?: number }) {
   const pathname = usePathname() ?? '';
 
+  // Pick the longest matching href so /voyages/planifies doesn't also highlight /voyages.
+  const activeHref = React.useMemo(() => {
+    let best: string | null = null;
+    for (const item of ITEMS) {
+      if (item.href === pathname || pathname.startsWith(item.href + '/')) {
+        if (!best || item.href.length > best.length) best = item.href;
+      }
+    }
+    return best;
+  }, [pathname]);
+
   return (
     <aside className="hidden w-64 shrink-0 border-r bg-card/40 lg:flex lg:flex-col">
       <Link href="/dashboard" className="flex items-center border-b px-6 py-5" aria-label="CapNomade — Accueil">
@@ -35,11 +46,15 @@ export function DashboardSidebar({ unreadInvitations = 0 }: { unreadInvitations?
 
       <nav className="flex-1 space-y-0.5 p-3" aria-label="Navigation principale">
         {ITEMS.map(({ href, label, icon: Icon }) => {
-          const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(href));
+          const active = href === activeHref;
+          // Sidebar nav rarely benefits from prefetch — every link points to a
+          // heavy dynamic page. Skipping prefetch on hover/render cuts a chunk
+          // of background work on dashboard load.
           return (
             <Link
               key={href}
               href={href}
+              prefetch={false}
               className={cn(
                 'group flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
                 active

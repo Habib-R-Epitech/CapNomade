@@ -1,23 +1,13 @@
 'use client';
 
 import * as React from 'react';
-
-const COUNTRIES_GEOJSON_URL =
-  'https://cdn.jsdelivr.net/gh/martynafford/natural-earth-geojson@master/110m/cultural/ne_110m_admin_0_countries.json';
+import { loadCountriesGeoJson, type CountryFeature } from '@/lib/geo/countries';
 
 interface CityPin {
   id: string;
   name: string;
   lng: number;
   lat: number;
-}
-
-interface CountryFeature {
-  type: 'Feature';
-  properties: { ISO_A2?: string; ISO_A2_EH?: string; NAME?: string };
-  geometry:
-    | { type: 'Polygon'; coordinates: number[][][] }
-    | { type: 'MultiPolygon'; coordinates: number[][][][] };
 }
 
 interface Props {
@@ -31,54 +21,91 @@ export function TripCountryMap({ countries, cities, height = 280 }: Props) {
 
   React.useEffect(() => {
     let cancelled = false;
-    fetch(COUNTRIES_GEOJSON_URL)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((geo: { features: CountryFeature[] } | null) => {
-        if (!cancelled) setData(geo?.features ?? []);
-      })
-      .catch(() => {
-        if (!cancelled) setData([]);
-      });
+    loadCountriesGeoJson().then((geo) => {
+      if (!cancelled) setData(geo?.features ?? []);
+    });
     return () => {
       cancelled = true;
     };
   }, []);
 
-  if (countries.length === 0 && cities.length === 0) return null;
+  const upper = React.useMemo(() => new Set(countries.map((c) => c.toUpperCase())), [countries]);
 
-  const upper = new Set(countries.map((c) => c.toUpperCase()));
-  const features = (data ?? []).filter((f) => {
-    const code = (f.properties.ISO_A2 || f.properties.ISO_A2_EH || '').toUpperCase();
-    return upper.has(code);
-  });
+  const features = React.useMemo(() => {
+    if (!data) return [];
+    return data.filter((f) => {
+      const code = (f.properties.ISO_A2 || f.properties.ISO_A2_EH || '').toUpperCase();
+      return upper.has(code);
+    });
+  }, [data, upper]);
 
-  // Compute bbox of relevant features + cities.
-  let minLng = Infinity, maxLng = -Infinity, minLat = Infinity, maxLat = -Infinity;
-  for (const f of features) {
-    const rings: number[][][] =
-      f.geometry.type === 'Polygon' ? f.geometry.coordinates : f.geometry.coordinates.flat();
-    for (const ring of rings) {
-      for (const c of ring) {
-        const lng = c[0]; const lat = c[1];
-        if (typeof lng === 'number' && typeof lat === 'number') {
-          if (lng < minLng) minLng = lng;
-          if (lng > maxLng) maxLng = lng;
-          if (lat < minLat) minLat = lat;
-          if (lat > maxLat) maxLat = lat;
+  const bbox = React.useMemo(() => {
+    let minLng = Infinity, maxLng = -Infinity, minLat = Infinity, maxLat = -Infinity;
+    for (const f of features) {
+      const rings: number[][][] =
+        f.geometry.type === 'Polygon' ? f.geometry.coordinates : f.geometry.coordinates.flat();
+      for (const ring of rings) {
+        for (const c of ring) {
+          const lng = c[0]; const lat = c[1];
+          if (typeof lng === 'number' && typeof lat === 'number') {
+            if (lng < minLng) minLng = lng;
+            if (lng > maxLng) maxLng = lng;
+            if (lat < minLat) minLat = lat;
+            if (lat > maxLat) maxLat = lat;
+          }
         }
       }
     }
-  }
-  for (const p of cities) {
-    if (p.lng < minLng) minLng = p.lng;
-    if (p.lng > maxLng) maxLng = p.lng;
-    if (p.lat < minLat) minLat = p.lat;
-    if (p.lat > maxLat) maxLat = p.lat;
-  }
+    for (const p of cities) {
+      if (p.lng < minLng) minLng = p.lng;
+      if (p.lng > maxLng) maxLng = p.lng;
+      if (p.lat < minLat) minLat = p.lat;
+      if (p.lat > maxLat) maxLat = p.lat;
+    }
+    return { minLng, maxLng, minLat, maxLat };
+  }, [features, cities]);
 
-  const ready = data !== null && Number.isFinite(minLng);
-  // Loading or no data → reserve space so layout doesn't jump.
-  if (!ready) {
+  const projected = React.useMemo(() => {
+    if (!Number.isFinite(bbox.minLng)) return null;
+    const padding = 1.5;
+    const x1 = bbox.minLng - padding;
+    const x2 = bbox.maxLng + padding;
+    const y1 = bbox.minLat - padding;
+    const y2 = bbox.maxLat + padding;
+    const aspect = (x2 - x1) / Math.max(0.001, y2 - y1);
+    const W = 800;
+    const H = Math.max(80, Math.round(W / Math.max(0.5, aspect)));
+    const project = (lng: number, lat: number): [number, number] => [
+      ((lng - x1) / (x2 - x1)) * W,
+      ((y2 - lat) / (y2 - y1)) * H,
+    ];
+    const paths = features.map((f) => {
+      const rings: number[][][] =
+        f.geometry.type === 'Polygon' ? f.geometry.coordinates : f.geometry.coordinates.flat();
+      return rings
+        .map((ring) =>
+          ring
+            .map((coord, i) => {
+              const lng = coord[0]; const lat = coord[1];
+              if (typeof lng !== 'number' || typeof lat !== 'number') return '';
+              const [x, y] = project(lng, lat);
+              return `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`;
+            })
+            .filter(Boolean)
+            .join('') + 'Z',
+        )
+        .join('');
+    });
+    const pins = cities.map((p) => {
+      const [cx, cy] = project(p.lng, p.lat);
+      return { ...p, cx, cy };
+    });
+    return { W, H, paths, pins };
+  }, [bbox, features, cities]);
+
+  if (countries.length === 0 && cities.length === 0) return null;
+
+  if (!projected) {
     return (
       <div
         className="flex w-full items-center justify-center rounded-xl border bg-muted/20 text-xs text-muted-foreground"
@@ -89,49 +116,15 @@ export function TripCountryMap({ countries, cities, height = 280 }: Props) {
     );
   }
 
-  // Add a small padding around the bbox.
-  const padding = 1.5; // degrees
-  const x1 = minLng - padding;
-  const x2 = maxLng + padding;
-  const y1 = minLat - padding;
-  const y2 = maxLat + padding;
-
-  // SVG coordinate space: project the bbox into a square-ish viewport.
-  // We use an equirectangular projection scaled to fit the bbox.
-  const aspect = (x2 - x1) / Math.max(0.001, y2 - y1);
-  const W = 800;
-  const H = Math.max(80, Math.round(W / Math.max(0.5, aspect)));
-
-  function project(lng: number, lat: number): [number, number] {
-    const px = ((lng - x1) / (x2 - x1)) * W;
-    const py = ((y2 - lat) / (y2 - y1)) * H;
-    return [px, py];
-  }
-
-  function geometryToPath(g: CountryFeature['geometry']): string {
-    const rings: number[][][] = g.type === 'Polygon' ? g.coordinates : g.coordinates.flat();
-    return rings
-      .map((ring) =>
-        ring
-          .map((coord, i) => {
-            const lng = coord[0]; const lat = coord[1];
-            if (typeof lng !== 'number' || typeof lat !== 'number') return '';
-            const [x, y] = project(lng, lat);
-            return `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`;
-          })
-          .filter(Boolean)
-          .join('') + 'Z',
-      )
-      .join('');
-  }
+  const { W, H, paths, pins } = projected;
 
   return (
     <div className="overflow-hidden rounded-xl border bg-[#dde7ee] dark:bg-[#0f1924]" style={{ height }}>
       <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet" className="h-full w-full">
-        {features.map((f, i) => (
+        {paths.map((d, i) => (
           <path
             key={i}
-            d={geometryToPath(f.geometry)}
+            d={d}
             fill="#0d9488"
             fillOpacity={0.35}
             stroke="#0d9488"
@@ -139,25 +132,22 @@ export function TripCountryMap({ countries, cities, height = 280 }: Props) {
             strokeOpacity={0.7}
           />
         ))}
-        {cities.map((p) => {
-          const [cx, cy] = project(p.lng, p.lat);
-          return (
-            <g key={p.id}>
-              <circle cx={cx} cy={cy} r={10} fill="#f04923" fillOpacity={0.2} />
-              <circle cx={cx} cy={cy} r={4.5} fill="#f04923" stroke="#fff" strokeWidth={1.5} />
-              <text
-                x={cx + 8}
-                y={cy + 3}
-                fontSize={12}
-                fontWeight={600}
-                fill="hsl(var(--foreground))"
-                style={{ pointerEvents: 'none', filter: 'drop-shadow(0 0 2px hsl(var(--background)))' }}
-              >
-                {p.name}
-              </text>
-            </g>
-          );
-        })}
+        {pins.map((p) => (
+          <g key={p.id}>
+            <circle cx={p.cx} cy={p.cy} r={10} fill="#f04923" fillOpacity={0.2} />
+            <circle cx={p.cx} cy={p.cy} r={4.5} fill="#f04923" stroke="#fff" strokeWidth={1.5} />
+            <text
+              x={p.cx + 8}
+              y={p.cy + 3}
+              fontSize={12}
+              fontWeight={600}
+              fill="hsl(var(--foreground))"
+              style={{ pointerEvents: 'none', filter: 'drop-shadow(0 0 2px hsl(var(--background)))' }}
+            >
+              {p.name}
+            </text>
+          </g>
+        ))}
       </svg>
     </div>
   );

@@ -2,10 +2,8 @@
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
+import { loadCountriesGeoJson, type CountriesGeoJson, type CountryFeature } from '@/lib/geo/countries';
 import type { MapTripPoint } from './WorldMap';
-
-const COUNTRIES_GEOJSON_URL =
-  'https://cdn.jsdelivr.net/gh/martynafford/natural-earth-geojson@master/110m/cultural/ne_110m_admin_0_countries.json';
 
 const W = 1000;
 const H = 500;
@@ -13,19 +11,6 @@ const H = 500;
 // Equirectangular projection: lng in [-180, 180], lat in [-90, 90] → SVG.
 function project(lng: number, lat: number): [number, number] {
   return [((lng + 180) / 360) * W, ((90 - lat) / 180) * H];
-}
-
-interface CountryFeature {
-  type: 'Feature';
-  properties: { ISO_A2?: string; ISO_A2_EH?: string; NAME?: string };
-  geometry:
-    | { type: 'Polygon'; coordinates: number[][][] }
-    | { type: 'MultiPolygon'; coordinates: number[][][][] };
-}
-
-interface FeatureCollection {
-  type: 'FeatureCollection';
-  features: CountryFeature[];
 }
 
 function geometryToPath(geom: CountryFeature['geometry']): string {
@@ -54,19 +39,14 @@ export function SVGWorldMap({
   visitedCountries?: string[];
 }) {
   const router = useRouter();
-  const [data, setData] = React.useState<FeatureCollection | null>(null);
+  const [data, setData] = React.useState<CountriesGeoJson | null>(null);
   const [hovered, setHovered] = React.useState<MapTripPoint | null>(null);
 
   React.useEffect(() => {
     let cancelled = false;
-    fetch(COUNTRIES_GEOJSON_URL)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((geo) => {
-        if (!cancelled) setData(geo);
-      })
-      .catch(() => {
-        // If even the GeoJSON fetch fails, we'll show points only on a blank background.
-      });
+    loadCountriesGeoJson().then((geo) => {
+      if (!cancelled) setData(geo);
+    });
     return () => {
       cancelled = true;
     };
@@ -77,6 +57,19 @@ export function SVGWorldMap({
     [visitedCountries],
   );
 
+  // Pre-project paths once; this is the expensive part (~250 polygons).
+  const countryPaths = React.useMemo(() => {
+    if (!data) return [];
+    return data.features.map((f) => {
+      const code = (f.properties.ISO_A2 || f.properties.ISO_A2_EH || '').toUpperCase();
+      return {
+        d: geometryToPath(f.geometry),
+        visited: !!(code && visitedSet.has(code)),
+        name: f.properties.NAME ?? '',
+      };
+    });
+  }, [data, visitedSet]);
+
   return (
     <div className="relative h-[420px] w-full overflow-hidden rounded-xl border bg-[#dde7ee] dark:bg-[#0f1924]">
       <svg
@@ -85,22 +78,18 @@ export function SVGWorldMap({
         className="h-full w-full"
         aria-label="Carte des voyages (SVG)"
       >
-        {data?.features.map((f, i) => {
-          const code = (f.properties.ISO_A2 || f.properties.ISO_A2_EH || '').toUpperCase();
-          const visited = code && visitedSet.has(code);
-          return (
-            <path
-              key={i}
-              d={geometryToPath(f.geometry)}
-              fill={visited ? '#0d9488' : 'hsl(var(--card))'}
-              fillOpacity={visited ? 0.6 : 1}
-              stroke={visited ? '#0d9488' : 'rgba(0,0,0,0.15)'}
-              strokeWidth={visited ? 0.8 : 0.4}
-            >
-              {f.properties.NAME && <title>{f.properties.NAME}</title>}
-            </path>
-          );
-        })}
+        {countryPaths.map((c, i) => (
+          <path
+            key={i}
+            d={c.d}
+            fill={c.visited ? '#0d9488' : 'hsl(var(--card))'}
+            fillOpacity={c.visited ? 0.6 : 1}
+            stroke={c.visited ? '#0d9488' : 'rgba(0,0,0,0.15)'}
+            strokeWidth={c.visited ? 0.8 : 0.4}
+          >
+            {c.name && <title>{c.name}</title>}
+          </path>
+        ))}
         {points.map((p) => {
           const [cx, cy] = project(p.lng, p.lat);
           return (

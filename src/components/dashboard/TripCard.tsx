@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import Image from 'next/image';
 import { Calendar, MapPin } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
@@ -33,12 +32,16 @@ export function TripCard({ trip }: { trip: TripCardData }) {
       <Card className="overflow-hidden">
         <div className="relative aspect-[16/9] overflow-hidden bg-gradient-to-br from-ocean-100 via-sand-100 to-coral-100 dark:from-ocean-900 dark:via-ocean-800 dark:to-coral-900">
           {trip.cover_image_url ? (
-            <Image
+            // Plain <img> rather than next/image: the cover URL is a Supabase
+            // public-bucket file and the optimizer adds latency + a failure
+            // point that bit us before. Cards are small so the win is marginal.
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
               src={trip.cover_image_url}
               alt=""
-              fill
-              sizes="(max-width: 768px) 100vw, 33vw"
-              className="object-cover transition-transform duration-500 group-hover:scale-105"
+              loading="lazy"
+              decoding="async"
+              className="absolute inset-0 size-full object-cover transition-transform duration-500 group-hover:scale-105"
             />
           ) : (
             <div className="absolute inset-0 flex items-center justify-center text-sm font-medium uppercase tracking-widest text-ocean-700/60 dark:text-ocean-200/50">

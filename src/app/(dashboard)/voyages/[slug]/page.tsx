@@ -46,6 +46,7 @@ import { StopsCRUD } from '@/components/trip/crud/StopsCRUD';
 import { AccommodationsCRUD } from '@/components/trip/crud/AccommodationsCRUD';
 import { MediaCRUD } from '@/components/trip/crud/MediaCRUD';
 import { formatCurrency, formatDateRange } from '@/lib/utils';
+import { extractLngLat } from '@/lib/geo/extractLngLat';
 
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { robots: { index: false, follow: false } };
@@ -380,23 +381,6 @@ export default async function TripDetailPage({ params }: { params: Promise<{ slu
       </Tabs>
     </div>
   );
-}
-
-function extractLngLat(geo: unknown): { lng: number; lat: number } | null {
-  if (!geo) return null;
-  if (typeof geo === 'object' && geo !== null && 'coordinates' in geo) {
-    const c = (geo as { coordinates: unknown }).coordinates;
-    if (Array.isArray(c) && c.length >= 2) {
-      const lng = Number(c[0]);
-      const lat = Number(c[1]);
-      if (Number.isFinite(lng) && Number.isFinite(lat)) return { lng, lat };
-    }
-  }
-  if (typeof geo === 'string') {
-    const m = /POINT\s*\(\s*(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s*\)/i.exec(geo);
-    if (m) return { lng: Number(m[1]), lat: Number(m[2]) };
-  }
-  return null;
 }
 
 const MEDIA_KINDS = ['youtube', 'drive', 'photo', 'article', 'booking', 'other'] as const;

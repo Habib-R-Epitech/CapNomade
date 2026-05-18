@@ -115,10 +115,38 @@ export function AddPastTripDialog({ open, onOpenChange, existing }: Props) {
       });
       if (error) throw error;
       const { data } = supabase.storage.from('trip-covers').getPublicUrl(path);
+      // Persist immediately rather than waiting for the submit — users were
+      // closing the dialog after seeing "Image uploadée" and losing the change.
+      const persist = await updateTripAction({ id: existing.id, cover_image_url: data.publicUrl });
+      if (!persist.ok) {
+        toast.error('Enregistrement impossible', { description: persist.error });
+        return;
+      }
       setCoverUrl(data.publicUrl);
-      toast.success('Image uploadée');
+      toast.success('Image enregistrée');
+      router.refresh();
     } catch (err) {
       toast.error('Upload impossible', { description: err instanceof Error ? err.message : 'erreur inconnue' });
+    } finally {
+      setCoverUploading(false);
+    }
+  }
+
+  async function handleCoverRemove() {
+    if (!existing) {
+      setCoverUrl(null);
+      return;
+    }
+    setCoverUploading(true);
+    try {
+      const persist = await updateTripAction({ id: existing.id, cover_image_url: null });
+      if (!persist.ok) {
+        toast.error('Suppression impossible', { description: persist.error });
+        return;
+      }
+      setCoverUrl(null);
+      toast.success('Image retirée');
+      router.refresh();
     } finally {
       setCoverUploading(false);
     }
@@ -388,7 +416,7 @@ export function AddPastTripDialog({ open, onOpenChange, existing }: Props) {
                       type="button"
                       variant="ghost"
                       size="sm"
-                      onClick={() => setCoverUrl(null)}
+                      onClick={handleCoverRemove}
                       disabled={coverUploading}
                     >
                       <Trash2 className="size-4" />
