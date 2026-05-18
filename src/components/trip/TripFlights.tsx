@@ -157,8 +157,9 @@ function FlightEditor({
   canEdit: boolean;
 }) {
   const totals = preview(waypoints);
-  const departure = waypoints[0] ?? null;
-  const arrival = waypoints.length >= 2 ? waypoints[waypoints.length - 1] : null;
+  const departure: FlightWaypoint | null = waypoints[0] ?? null;
+  const arrival: FlightWaypoint | null =
+    waypoints.length >= 2 ? (waypoints[waypoints.length - 1] ?? null) : null;
   const layovers = waypoints.length >= 2 ? waypoints.slice(1, -1) : [];
 
   // We track which "slot" is in autocomplete-edit mode so we can show the
