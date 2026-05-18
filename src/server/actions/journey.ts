@@ -54,7 +54,7 @@ export async function setTripJourneyAction(input: unknown): Promise<ActionResult
     new Set(legs.flatMap((l) => [l.origin_stop_id, l.destination_stop_id])),
   );
 
-  let stopsById = new Map<string, { lng: number; lat: number }>();
+  const stopsById = new Map<string, { lng: number; lat: number }>();
   if (referencedIds.length > 0) {
     const stopsResp = await supabase
       .from('trip_stops')
