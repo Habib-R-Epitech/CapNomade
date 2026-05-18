@@ -41,6 +41,7 @@ import { EditTripButton } from '@/components/voyages/EditTripButton';
 import { TripCitiesBar } from '@/components/trip/TripCitiesBar';
 import { TripCountryMap } from '@/components/trip/TripCountryMap';
 import { TripJourneyBuilder, type JourneyLeg } from '@/components/trip/TripJourneyBuilder';
+import { TripFlights, type TripFlight } from '@/components/trip/TripFlights';
 import { ExpensesCRUD } from '@/components/trip/crud/ExpensesCRUD';
 import { TransportsCRUD } from '@/components/trip/crud/TransportsCRUD';
 import { StopsCRUD } from '@/components/trip/crud/StopsCRUD';
@@ -75,6 +76,7 @@ export default async function TripDetailPage({ params }: { params: Promise<{ slu
     mediaResp,
     expensesResp,
     stats,
+    flightsResp,
   ] = await Promise.all([
     supabase.from('trips').select('*').eq('id', context.trip.id).single(),
     supabase.from('trip_stops').select('*').eq('trip_id', context.trip.id).order('order_index'),
@@ -107,6 +109,10 @@ export default async function TripDetailPage({ params }: { params: Promise<{ slu
       .eq('trip_id', context.trip.id)
       .order('spent_on', { ascending: false, nullsFirst: false }),
     loadTripStats(context.trip.id),
+    supabase
+      .from('trip_flights')
+      .select('direction, waypoints, total_distance_km, total_duration_minutes, total_emission_kgco2e')
+      .eq('trip_id', context.trip.id),
   ]);
 
   const trip = asRow<TripRow>(tripResp);
@@ -137,6 +143,8 @@ export default async function TripDetailPage({ params }: { params: Promise<{ slu
       return coords ? { id: s.id, name: s.name, lng: coords.lng, lat: coords.lat } : null;
     })
     .filter((p): p is { id: string; name: string; lng: number; lat: number } => p !== null);
+
+  const flights = asRows<TripFlight>(flightsResp);
 
   // Legs built by the journey UI carry origin_stop_id + destination_stop_id;
   // anything created via the standalone Transports tab won't, so filter those out.
@@ -223,6 +231,13 @@ export default async function TripDetailPage({ params }: { params: Promise<{ slu
           )}
           <TripActions tripId={trip.id} slug={trip.slug} status={trip.status} canEdit={canEdit} isOwner={context.isOwner} />
         </div>
+
+        <TripFlights
+          tripId={trip.id}
+          countries={(trip.primary_countries ?? []).map((c: string) => c.toUpperCase())}
+          initialFlights={flights}
+          canEdit={canEdit}
+        />
 
         <TripCitiesBar
           tripId={trip.id}
