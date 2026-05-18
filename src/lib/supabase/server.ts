@@ -64,7 +64,7 @@ function wrapReadOnly<T extends object>(real: T): T {
     get(target, prop, receiver) {
       const value = Reflect.get(target, prop, receiver);
       if (prop === 'from' && typeof value === 'function') {
-        return (...args: unknown[]) => wrapTableBuilder((value as Function).apply(target, args));
+        return (...args: unknown[]) => wrapTableBuilder((value as (...a: unknown[]) => unknown).apply(target, args));
       }
       if (prop === 'rpc' && typeof value === 'function') {
         return () => makeReadOnlyResult();
@@ -85,7 +85,7 @@ function wrapTableBuilder<T extends object>(builder: T): T {
         return () => makeReadOnlyResult();
       }
       const value = Reflect.get(target, prop);
-      return typeof value === 'function' ? (value as Function).bind(target) : value;
+      return typeof value === 'function' ? (value as (...a: unknown[]) => unknown).bind(target) : value;
     },
   };
   return new Proxy(builder, handler);
@@ -97,7 +97,7 @@ function wrapStorage<T extends object>(storage: T): T {
       const value = Reflect.get(target, prop, receiver);
       if (prop === 'from' && typeof value === 'function') {
         return (...args: unknown[]) => {
-          const bucket = (value as Function).apply(target, args) as object;
+          const bucket = (value as (...a: unknown[]) => unknown).apply(target, args) as object;
           return new Proxy(bucket, {
             get(t, p, r) {
               if (p === 'upload' || p === 'update' || p === 'remove' || p === 'move' || p === 'copy') {
