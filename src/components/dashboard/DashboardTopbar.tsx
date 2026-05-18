@@ -2,6 +2,7 @@ import { Bell, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { UserMenu } from '@/components/dashboard/UserMenu';
+import { MobileNavButton } from '@/components/dashboard/DashboardSidebar';
 import { ThemeToggle } from '@/components/marketing/ThemeToggle';
 
 export function DashboardTopbar({
@@ -9,14 +10,17 @@ export function DashboardTopbar({
   email,
   avatarUrl,
   unreadNotifications,
+  unreadInvitations = 0,
 }: {
   fullName: string | null;
   email: string;
   avatarUrl: string | null;
   unreadNotifications: number;
+  unreadInvitations?: number;
 }) {
   return (
     <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b bg-background/85 px-4 backdrop-blur md:px-6">
+      <MobileNavButton unreadInvitations={unreadInvitations} />
       <div className="flex-1" />
       <Button asChild size="sm">
         <Link href="/voyages/nouveau">
