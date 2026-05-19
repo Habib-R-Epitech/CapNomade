@@ -274,6 +274,11 @@ export default async function TripDetailPage({ params }: { params: Promise<{ slu
           <TripCountryMap
             countries={(trip.primary_countries ?? []).map((c: string) => c.toUpperCase())}
             cities={cityPins}
+            legs={journeyLegs.map((l) => ({
+              from_id: l.origin_stop_id,
+              to_id: l.destination_stop_id,
+              mode: l.mode,
+            }))}
             height={300}
           />
         )}
