@@ -21,6 +21,21 @@ export interface CountriesGeoJson {
   features: CountryFeature[];
 }
 
+/**
+ * Read the ISO 3166-1 alpha-2 code from a Natural Earth feature. The 110m
+ * dataset historically stores `-99` in `ISO_A2` for a handful of countries
+ * (France, Norway, Kosovo…) and the corrected value in `ISO_A2_EH`. We treat
+ * `-99` as missing so those countries match correctly.
+ */
+export function featureIso2(feature: CountryFeature): string {
+  const props = feature.properties;
+  const primary = props.ISO_A2;
+  if (primary && primary !== '-99') return primary.toUpperCase();
+  const eh = props.ISO_A2_EH;
+  if (eh && eh !== '-99') return eh.toUpperCase();
+  return '';
+}
+
 let cached: CountriesGeoJson | null = null;
 let pending: Promise<CountriesGeoJson | null> | null = null;
 

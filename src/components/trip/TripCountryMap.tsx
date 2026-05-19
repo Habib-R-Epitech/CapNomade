@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { loadCountriesGeoJson, type CountryFeature } from '@/lib/geo/countries';
+import { featureIso2, loadCountriesGeoJson, type CountryFeature } from '@/lib/geo/countries';
 import type { TransportMode } from '@/lib/types/database';
 
 interface CityPin {
@@ -52,10 +52,7 @@ export function TripCountryMap({ countries, cities, legs = [], height = 280 }: P
 
   const features = React.useMemo(() => {
     if (!data) return [];
-    return data.filter((f) => {
-      const code = (f.properties.ISO_A2 || f.properties.ISO_A2_EH || '').toUpperCase();
-      return upper.has(code);
-    });
+    return data.filter((f) => upper.has(featureIso2(f)));
   }, [data, upper]);
 
   // When cities are known, frame the map on them (with padding). Otherwise

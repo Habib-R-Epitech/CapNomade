@@ -2,7 +2,12 @@
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
-import { loadCountriesGeoJson, type CountriesGeoJson, type CountryFeature } from '@/lib/geo/countries';
+import {
+  featureIso2,
+  loadCountriesGeoJson,
+  type CountriesGeoJson,
+  type CountryFeature,
+} from '@/lib/geo/countries';
 import type { MapTripPoint } from './WorldMap';
 
 const W = 1000;
@@ -61,7 +66,7 @@ export function SVGWorldMap({
   const countryPaths = React.useMemo(() => {
     if (!data) return [];
     return data.features.map((f) => {
-      const code = (f.properties.ISO_A2 || f.properties.ISO_A2_EH || '').toUpperCase();
+      const code = featureIso2(f);
       return {
         d: geometryToPath(f.geometry),
         visited: !!(code && visitedSet.has(code)),
